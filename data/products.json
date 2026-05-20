@@ -1,0 +1,65 @@
+{
+  "updated": "2026-04-23",
+  "products": [
+    {
+      "id": "P0001",
+      "name": "Caregiver Command Center",
+      "slug": "caregiver",
+      "url": "https://app.clearfolks.com/caregiver",
+      "status": "live",
+      "category": "Caregiver support",
+      "etsy_listing": "live",
+      "etsy_url": "https://www.etsy.com/listing/4490826785/caregiver-organizer-app-medication"
+    },
+    {
+      "id": "P0002",
+      "name": "Medication Tracker",
+      "slug": "cf-bqs4r8e9",
+      "url": "https://app.clearfolks.com/cf-bqs4r8e9",
+      "status": "live",
+      "category": "Caregiver support",
+      "etsy_listing": "live",
+      "etsy_url": "https://www.etsy.com/listing/4490844238/medication-tracker-app-track-doses"
+    },
+    {
+      "id": "P0003",
+      "name": "IEP Parent Binder",
+      "slug": "cf-9x25jxsc",
+      "url": "https://app.clearfolks.com/cf-9x25jxsc",
+      "status": "live",
+      "category": "Special education",
+      "etsy_listing": "live",
+      "etsy_url": "https://www.etsy.com/listing/4490835131/iep-parent-binder-app-track-goals"
+    },
+    {
+      "id": "P0004",
+      "name": "IEP Meeting Prep Kit",
+      "slug": "cf-qatxssg7",
+      "url": "https://app.clearfolks.com/cf-qatxssg7",
+      "status": "live",
+      "category": "Special education",
+      "etsy_listing": "live",
+      "etsy_url": "https://www.etsy.com/listing/4490828563/iep-meeting-prep-kit-28-questions-parent"
+    },
+    {
+      "id": "P0005",
+      "name": "Etsy Seller Business System",
+      "slug": "cf-63nja3ht",
+      "url": "https://app.clearfolks.com/cf-63nja3ht",
+      "status": "live",
+      "category": "Etsy sellers",
+      "etsy_listing": "live",
+      "etsy_url": "https://www.etsy.com/listing/4490841158/etsy-profit-tracker-app-sales-fees"
+    },
+    {
+      "id": "P0006",
+      "name": "Wedding Planning App",
+      "slug": "cf-2465sd9i",
+      "url": "https://app.clearfolks.com/cf-2465sd9i",
+      "status": "live",
+      "category": "Wedding planning",
+      "etsy_listing": "pending",
+      "etsy_url": ""
+    }
+  ]
+}

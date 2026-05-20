@@ -1,0 +1,672 @@
+{
+  "updated": "2026-04-23",
+  "total": 36,
+  "skipped": [
+    "unschooling"
+  ],
+  "by_category": [
+    {
+      "category": "Wedding planning",
+      "subreddits": [
+        {
+          "name": "weddingplanning",
+          "why": "Active community where engaged couples constantly ask for organizational systems and tools to manage timelines, vendors, and guest lists.",
+          "buyer_language_examples": [
+            "How do I keep track of all these vendors?",
+            "I need a system to organize everything",
+            "I'm so overwhelmed with planning"
+          ],
+          "confidence": "high"
+        },
+        {
+          "name": "Weddingsunder10k",
+          "why": "Budget-conscious planners seeking practical solutions and discussing organizational challenges while managing limited resources.",
+          "buyer_language_examples": [
+            "How do I organize my timeline?",
+            "What's the best way to track expenses?",
+            "I need help staying organized"
+          ],
+          "confidence": "high"
+        },
+        {
+          "name": "JustEngaged",
+          "why": "Recently engaged people asking for beginner guidance on planning structure and seeking recommendations for tools.",
+          "buyer_language_examples": [
+            "Where do I even start?",
+            "Can someone recommend a planner?",
+            "How do people organize this?"
+          ],
+          "confidence": "medium"
+        }
+      ]
+    },
+    {
+      "category": "Homeschool planning",
+      "subreddits": [
+        {
+          "name": "homeschool",
+          "why": "Parents actively discussing curriculum organization, scheduling challenges, and seeking systems to manage multiple children and subjects.",
+          "buyer_language_examples": [
+            "I need to organize our curriculum",
+            "How do you track progress for multiple kids?",
+            "I'm overwhelmed managing everything"
+          ],
+          "confidence": "high"
+        },
+        {
+          "name": "HomeschoolRecovery",
+          "why": "Parents transitioning to homeschooling asking for organizational frameworks and systems to manage the chaos.",
+          "buyer_language_examples": [
+            "How do I organize this?",
+            "What system works for homeschooling?",
+            "I need help staying on track"
+          ],
+          "confidence": "high"
+        }
+      ]
+    },
+    {
+      "category": "Pet care management",
+      "subreddits": [
+        {
+          "name": "Pets",
+          "why": "Pet owners discuss care routines, medical tracking, and ask for organizational solutions for managing multiple animals.",
+          "buyer_language_examples": [
+            "How do you keep track of vet appointments?",
+            "I need to organize pet care",
+            "Help me remember all the tasks"
+          ],
+          "confidence": "medium"
+        },
+        {
+          "name": "CatsStandingUp",
+          "why": "Active cat owner community discussing care management and sharing organizational struggles.",
+          "buyer_language_examples": [
+            "How do you track vet visits?",
+            "What's your system for managing care?",
+            "I keep forgetting medication dates"
+          ],
+          "confidence": "medium"
+        },
+        {
+          "name": "dogs",
+          "why": "Dog owners frequently asking how to organize training schedules, medical records, and care routines.",
+          "buyer_language_examples": [
+            "How do you manage vet schedules?",
+            "I need to track training progress",
+            "What system do you use?"
+          ],
+          "confidence": "medium"
+        }
+      ]
+    },
+    {
+      "category": "Rental property management",
+      "subreddits": [
+        {
+          "name": "Landlord",
+          "why": "Small landlords managing 1-3 properties asking for solutions to track maintenance, tenant communication, and expenses.",
+          "buyer_language_examples": [
+            "How do you organize maintenance requests?",
+            "I need to track expenses",
+            "What system do you use for management?"
+          ],
+          "confidence": "high"
+        },
+        {
+          "name": "realestateinvesting",
+          "why": "Individual investors discussing portfolio management and asking for organizational tools for property tracking.",
+          "buyer_language_examples": [
+            "How do you manage multiple properties?",
+            "I need a better system",
+            "What's the best way to track?"
+          ],
+          "confidence": "high"
+        },
+        {
+          "name": "RealEstate",
+          "why": "Property owners and investors discussing management pain points and seeking practical solutions.",
+          "buyer_language_examples": [
+            "How do you stay organized?",
+            "I need help managing properties",
+            "What system works best?"
+          ],
+          "confidence": "medium"
+        }
+      ]
+    },
+    {
+      "category": "Freelancer admin",
+      "subreddits": [
+        {
+          "name": "freelance",
+          "why": "Freelancers constantly ask how to organize projects, track time, manage deadlines, and stay productive.",
+          "buyer_language_examples": [
+            "How do you organize projects?",
+            "I need a better system for tracking",
+            "I'm drowning in admin work"
+          ],
+          "confidence": "high"
+        },
+        {
+          "name": "soloprepreneur",
+          "why": "Solo business owners discussing organizational systems and seeking solutions for admin overwhelm.",
+          "buyer_language_examples": [
+            "How do you manage everything?",
+            "I need a system for organization",
+            "What tools help with admin?"
+          ],
+          "confidence": "high"
+        },
+        {
+          "name": "remotework",
+          "why": "Remote workers and freelancers discussing productivity and asking for organizational solutions.",
+          "buyer_language_examples": [
+            "How do you stay organized?",
+            "What system do you use?",
+            "I need to better manage my time"
+          ],
+          "confidence": "medium"
+        }
+      ]
+    },
+    {
+      "category": "Meal planning and grocery",
+      "subreddits": [
+        {
+          "name": "mealprep",
+          "why": "Active community constantly asking how to plan, organize, and track meal prep routines.",
+          "buyer_language_examples": [
+            "How do you plan meals?",
+            "I need a better system",
+            "How do you organize grocery shopping?"
+          ],
+          "confidence": "high"
+        },
+        {
+          "name": "EatCheapAndHealthy",
+          "why": "Budget-conscious users asking for meal planning systems and grocery organization strategies.",
+          "buyer_language_examples": [
+            "How do you plan meals on a budget?",
+            "I need help organizing meals",
+            "What's your system?"
+          ],
+          "confidence": "high"
+        },
+        {
+          "name": "budgetfood",
+          "why": "People seeking affordable eating solutions and asking for organizational approaches to meal planning.",
+          "buyer_language_examples": [
+            "How do you organize meal planning?",
+            "I need a better system",
+            "Help me plan meals"
+          ],
+          "confidence": "high"
+        }
+      ]
+    },
+    {
+      "category": "Moving house organizer",
+      "subreddits": [
+        {
+          "name": "moving",
+          "why": "People actively moving ask for organizational systems, checklists, and coordination tools for complex moves.",
+          "buyer_language_examples": [
+            "How do I organize this move?",
+            "I'm overwhelmed with everything",
+            "What's the best way to track boxes?"
+          ],
+          "confidence": "high"
+        },
+        {
+          "name": "IWantOut",
+          "why": "People planning relocations asking for systems to manage logistics and timelines.",
+          "buyer_language_examples": [
+            "How do I organize my move?",
+            "I need help planning",
+            "What system should I use?"
+          ],
+          "confidence": "medium"
+        },
+        {
+          "name": "expats",
+          "why": "International movers discussing complex relocation challenges and asking for organizational solutions.",
+          "buyer_language_examples": [
+            "How do you organize an international move?",
+            "I need a system",
+            "Help me track everything"
+          ],
+          "confidence": "medium"
+        }
+      ]
+    },
+    {
+      "category": "New baby and postpartum",
+      "subreddits": [
+        {
+          "name": "BabyBumps",
+          "why": "Pregnant people asking how to prepare, organize, and manage the overwhelming complexity of new parenthood.",
+          "buyer_language_examples": [
+            "How do you organize for baby?",
+            "I'm overwhelmed with prep",
+            "What system do new parents use?"
+          ],
+          "confidence": "high"
+        },
+        {
+          "name": "NewParents",
+          "why": "New parents constantly asking for help organizing feeding schedules, sleep tracking, and daily routines.",
+          "buyer_language_examples": [
+            "How do you keep track of everything?",
+            "I'm so disorganized",
+            "I need a system for schedules"
+          ],
+          "confidence": "high"
+        },
+        {
+          "name": "Parenting",
+          "why": "Parents discussing challenges with organization, scheduling, and managing multiple responsibilities.",
+          "buyer_language_examples": [
+            "How do you stay organized?",
+            "I need help tracking everything",
+            "What system do you use?"
+          ],
+          "confidence": "high"
+        }
+      ]
+    },
+    {
+      "category": "Event planning",
+      "subreddits": [
+        {
+          "name": "eventplanning",
+          "why": "Event planners and DIY organizers constantly ask how to manage timelines, vendors, budgets, and guest coordination.",
+          "buyer_language_examples": [
+            "How do I organize all the details?",
+            "I need a better system for tracking",
+            "I'm overwhelmed"
+          ],
+          "confidence": "high"
+        },
+        {
+          "name": "Partyplanning",
+          "why": "Parents and hosts planning events ask for organizational systems and management solutions.",
+          "buyer_language_examples": [
+            "How do you stay organized?",
+            "I need to track everything",
+            "What system works?"
+          ],
+          "confidence": "high"
+        },
+        {
+          "name": "weddingplanning",
+          "why": "Engaged couples overlap with general event planning, managing similar organizational complexity.",
+          "buyer_language_examples": [
+            "How do I keep everything organized?",
+            "I need a system",
+            "Too many details to track"
+          ],
+          "confidence": "medium"
+        }
+      ]
+    },
+    {
+      "category": "School year planner",
+      "subreddits": [
+        {
+          "name": "Teachers",
+          "why": "Teachers ask for systems to organize lesson plans, student tracking, and classroom management.",
+          "buyer_language_examples": [
+            "How do you organize lesson plans?",
+            "I need a better system",
+            "How do you track student progress?"
+          ],
+          "confidence": "medium"
+        },
+        {
+          "name": "Parenting",
+          "why": "Parents managing school schedules, activities, and coordination ask for organizational solutions.",
+          "buyer_language_examples": [
+            "How do you organize school activities?",
+            "I need to track everything",
+            "What system works?"
+          ],
+          "confidence": "medium"
+        },
+        {
+          "name": "BackToSchool",
+          "why": "Parents preparing for school year asking for organizational systems and planning tools.",
+          "buyer_language_examples": [
+            "How do you organize everything?",
+            "I need a system",
+            "Help me stay on track"
+          ],
+          "confidence": "medium"
+        }
+      ]
+    },
+    {
+      "category": "Garden planner",
+      "subreddits": [
+        {
+          "name": "gardening",
+          "why": "Gardeners actively discuss tracking planting schedules, maintenance, and crop planning systems.",
+          "buyer_language_examples": [
+            "How do you track what you planted?",
+            "I need a system to plan",
+            "How do you organize your garden?"
+          ],
+          "confidence": "high"
+        },
+        {
+          "name": "vegetablegardening",
+          "why": "Gardeners planning crops ask for systems to track planting dates, harvests, and rotation.",
+          "buyer_language_examples": [
+            "How do you keep track of planting?",
+            "I need to organize my garden",
+            "What's your system?"
+          ],
+          "confidence": "high"
+        },
+        {
+          "name": "BackyardFarming",
+          "why": "Homesteaders managing multiple crops and animals ask for organizational systems.",
+          "buyer_language_examples": [
+            "How do you organize everything?",
+            "I need a better system",
+            "What do you track?"
+          ],
+          "confidence": "medium"
+        }
+      ]
+    },
+    {
+      "category": "Home renovation",
+      "subreddits": [
+        {
+          "name": "HomeImprovement",
+          "why": "DIY renovators ask how to organize timelines, budgets, contractor communication, and project phases.",
+          "buyer_language_examples": [
+            "How do I organize this project?",
+            "I need to track everything",
+            "What system works for renovation?"
+          ],
+          "confidence": "high"
+        },
+        {
+          "name": "centuryhomes",
+          "why": "Old house owners managing complex renovation projects ask for organizational systems.",
+          "buyer_language_examples": [
+            "How do you manage renovation?",
+            "I need to organize this",
+            "What system do you use?"
+          ],
+          "confidence": "medium"
+        },
+        {
+          "name": "IWantToLearnThat",
+          "why": "People planning renovations ask for guidance on managing complex projects.",
+          "buyer_language_examples": [
+            "How do I organize this?",
+            "I need a system",
+            "What's the best way?"
+          ],
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "category": "Travel planning",
+      "subreddits": [
+        {
+          "name": "travel",
+          "why": "Travelers constantly ask how to organize itineraries, budgets, packing, and coordinate group trips.",
+          "buyer_language_examples": [
+            "How do you organize a trip?",
+            "I need a system for planning",
+            "How do you track everything?"
+          ],
+          "confidence": "high"
+        },
+        {
+          "name": "roadtrip",
+          "why": "Road trip planners ask for help organizing routes, stops, budgets, and schedules.",
+          "buyer_language_examples": [
+            "How do you plan a road trip?",
+            "I need to organize this",
+            "What system do you use?"
+          ],
+          "confidence": "high"
+        },
+        {
+          "name": "backpacking",
+          "why": "Budget travelers asking how to organize itineraries, accommodations, and logistics.",
+          "buyer_language_examples": [
+            "How do you organize backpacking?",
+            "I need a system",
+            "What's the best way to plan?"
+          ],
+          "confidence": "medium"
+        }
+      ]
+    }
+  ],
+  "flat_list": [
+    {
+      "name": "weddingplanning",
+      "category": "Wedding planning",
+      "confidence": "high",
+      "why": "Active community where engaged couples constantly ask for organizational systems and tools to manage timelines, vendors, and guest lists."
+    },
+    {
+      "name": "Weddingsunder10k",
+      "category": "Wedding planning",
+      "confidence": "high",
+      "why": "Budget-conscious planners seeking practical solutions and discussing organizational challenges while managing limited resources."
+    },
+    {
+      "name": "homeschool",
+      "category": "Homeschool planning",
+      "confidence": "high",
+      "why": "Parents actively discussing curriculum organization, scheduling challenges, and seeking systems to manage multiple children and subjects."
+    },
+    {
+      "name": "HomeschoolRecovery",
+      "category": "Homeschool planning",
+      "confidence": "high",
+      "why": "Parents transitioning to homeschooling asking for organizational frameworks and systems to manage the chaos."
+    },
+    {
+      "name": "Landlord",
+      "category": "Rental property management",
+      "confidence": "high",
+      "why": "Small landlords managing 1-3 properties asking for solutions to track maintenance, tenant communication, and expenses."
+    },
+    {
+      "name": "realestateinvesting",
+      "category": "Rental property management",
+      "confidence": "high",
+      "why": "Individual investors discussing portfolio management and asking for organizational tools for property tracking."
+    },
+    {
+      "name": "freelance",
+      "category": "Freelancer admin",
+      "confidence": "high",
+      "why": "Freelancers constantly ask how to organize projects, track time, manage deadlines, and stay productive."
+    },
+    {
+      "name": "soloprepreneur",
+      "category": "Freelancer admin",
+      "confidence": "high",
+      "why": "Solo business owners discussing organizational systems and seeking solutions for admin overwhelm."
+    },
+    {
+      "name": "mealprep",
+      "category": "Meal planning and grocery",
+      "confidence": "high",
+      "why": "Active community constantly asking how to plan, organize, and track meal prep routines."
+    },
+    {
+      "name": "EatCheapAndHealthy",
+      "category": "Meal planning and grocery",
+      "confidence": "high",
+      "why": "Budget-conscious users asking for meal planning systems and grocery organization strategies."
+    },
+    {
+      "name": "budgetfood",
+      "category": "Meal planning and grocery",
+      "confidence": "high",
+      "why": "People seeking affordable eating solutions and asking for organizational approaches to meal planning."
+    },
+    {
+      "name": "moving",
+      "category": "Moving house organizer",
+      "confidence": "high",
+      "why": "People actively moving ask for organizational systems, checklists, and coordination tools for complex moves."
+    },
+    {
+      "name": "BabyBumps",
+      "category": "New baby and postpartum",
+      "confidence": "high",
+      "why": "Pregnant people asking how to prepare, organize, and manage the overwhelming complexity of new parenthood."
+    },
+    {
+      "name": "NewParents",
+      "category": "New baby and postpartum",
+      "confidence": "high",
+      "why": "New parents constantly asking for help organizing feeding schedules, sleep tracking, and daily routines."
+    },
+    {
+      "name": "Parenting",
+      "category": "New baby and postpartum",
+      "confidence": "high",
+      "why": "Parents discussing challenges with organization, scheduling, and managing multiple responsibilities."
+    },
+    {
+      "name": "eventplanning",
+      "category": "Event planning",
+      "confidence": "high",
+      "why": "Event planners and DIY organizers constantly ask how to manage timelines, vendors, budgets, and guest coordination."
+    },
+    {
+      "name": "Partyplanning",
+      "category": "Event planning",
+      "confidence": "high",
+      "why": "Parents and hosts planning events ask for organizational systems and management solutions."
+    },
+    {
+      "name": "gardening",
+      "category": "Garden planner",
+      "confidence": "high",
+      "why": "Gardeners actively discuss tracking planting schedules, maintenance, and crop planning systems."
+    },
+    {
+      "name": "vegetablegardening",
+      "category": "Garden planner",
+      "confidence": "high",
+      "why": "Gardeners planning crops ask for systems to track planting dates, harvests, and rotation."
+    },
+    {
+      "name": "HomeImprovement",
+      "category": "Home renovation",
+      "confidence": "high",
+      "why": "DIY renovators ask how to organize timelines, budgets, contractor communication, and project phases."
+    },
+    {
+      "name": "travel",
+      "category": "Travel planning",
+      "confidence": "high",
+      "why": "Travelers constantly ask how to organize itineraries, budgets, packing, and coordinate group trips."
+    },
+    {
+      "name": "roadtrip",
+      "category": "Travel planning",
+      "confidence": "high",
+      "why": "Road trip planners ask for help organizing routes, stops, budgets, and schedules."
+    },
+    {
+      "name": "JustEngaged",
+      "category": "Wedding planning",
+      "confidence": "medium",
+      "why": "Recently engaged people asking for beginner guidance on planning structure and seeking recommendations for tools."
+    },
+    {
+      "name": "Pets",
+      "category": "Pet care management",
+      "confidence": "medium",
+      "why": "Pet owners discuss care routines, medical tracking, and ask for organizational solutions for managing multiple animals."
+    },
+    {
+      "name": "CatsStandingUp",
+      "category": "Pet care management",
+      "confidence": "medium",
+      "why": "Active cat owner community discussing care management and sharing organizational struggles."
+    },
+    {
+      "name": "dogs",
+      "category": "Pet care management",
+      "confidence": "medium",
+      "why": "Dog owners frequently asking how to organize training schedules, medical records, and care routines."
+    },
+    {
+      "name": "RealEstate",
+      "category": "Rental property management",
+      "confidence": "medium",
+      "why": "Property owners and investors discussing management pain points and seeking practical solutions."
+    },
+    {
+      "name": "remotework",
+      "category": "Freelancer admin",
+      "confidence": "medium",
+      "why": "Remote workers and freelancers discussing productivity and asking for organizational solutions."
+    },
+    {
+      "name": "IWantOut",
+      "category": "Moving house organizer",
+      "confidence": "medium",
+      "why": "People planning relocations asking for systems to manage logistics and timelines."
+    },
+    {
+      "name": "expats",
+      "category": "Moving house organizer",
+      "confidence": "medium",
+      "why": "International movers discussing complex relocation challenges and asking for organizational solutions."
+    },
+    {
+      "name": "Teachers",
+      "category": "School year planner",
+      "confidence": "medium",
+      "why": "Teachers ask for systems to organize lesson plans, student tracking, and classroom management."
+    },
+    {
+      "name": "BackToSchool",
+      "category": "School year planner",
+      "confidence": "medium",
+      "why": "Parents preparing for school year asking for organizational systems and planning tools."
+    },
+    {
+      "name": "BackyardFarming",
+      "category": "Garden planner",
+      "confidence": "medium",
+      "why": "Homesteaders managing multiple crops and animals ask for organizational systems."
+    },
+    {
+      "name": "centuryhomes",
+      "category": "Home renovation",
+      "confidence": "medium",
+      "why": "Old house owners managing complex renovation projects ask for organizational systems."
+    },
+    {
+      "name": "backpacking",
+      "category": "Travel planning",
+      "confidence": "medium",
+      "why": "Budget travelers asking how to organize itineraries, accommodations, and logistics."
+    },
+    {
+      "name": "IWantToLearnThat",
+      "category": "Home renovation",
+      "confidence": "low",
+      "why": "People planning renovations ask for guidance on managing complex projects."
+    }
+  ]
+}
