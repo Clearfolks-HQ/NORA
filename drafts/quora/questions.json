@@ -1,0 +1,233 @@
+{
+  "generated": "2026-05-20",
+  "note": "URLs are constructed in Quora's slug format and are best-effort. Verify or replace with the live Quora question URL before posting.",
+  "questions": [
+    {
+      "cluster": "caregiver",
+      "priority": 1,
+      "question": "How do family caregivers stay organized when caring for an aging parent?",
+      "url": "https://www.quora.com/How-do-family-caregivers-stay-organized-when-caring-for-an-aging-parent"
+    },
+    {
+      "cluster": "caregiver",
+      "priority": 2,
+      "question": "What is the best app for managing an elderly parent's medications, appointments, and contacts?",
+      "url": "https://www.quora.com/What-is-the-best-app-for-managing-an-elderly-parents-medications-appointments-and-contacts"
+    },
+    {
+      "cluster": "caregiver",
+      "priority": 3,
+      "question": "How do siblings divide and coordinate caregiving responsibilities for a parent?",
+      "url": "https://www.quora.com/How-do-siblings-divide-and-coordinate-caregiving-responsibilities-for-a-parent"
+    },
+
+    {
+      "cluster": "medication",
+      "priority": 1,
+      "question": "What is the best way to track medications for a family member with multiple prescriptions?",
+      "url": "https://www.quora.com/What-is-the-best-way-to-track-medications-for-a-family-member-with-multiple-prescriptions"
+    },
+    {
+      "cluster": "medication",
+      "priority": 2,
+      "question": "How can I make sure my elderly parent never misses a medication dose?",
+      "url": "https://www.quora.com/How-can-I-make-sure-my-elderly-parent-never-misses-a-medication-dose"
+    },
+    {
+      "cluster": "medication",
+      "priority": 3,
+      "question": "Are there medication tracker apps that don't require a monthly subscription?",
+      "url": "https://www.quora.com/Are-there-medication-tracker-apps-that-dont-require-a-monthly-subscription"
+    },
+
+    {
+      "cluster": "iep",
+      "priority": 1,
+      "question": "How should parents prepare for their child's IEP meeting?",
+      "url": "https://www.quora.com/How-should-parents-prepare-for-their-childs-IEP-meeting"
+    },
+    {
+      "cluster": "iep",
+      "priority": 2,
+      "question": "What questions should parents ask at an IEP meeting?",
+      "url": "https://www.quora.com/What-questions-should-parents-ask-at-an-IEP-meeting"
+    },
+    {
+      "cluster": "iep",
+      "priority": 3,
+      "question": "How can parents keep their child's IEP paperwork, goals, and progress organized year over year?",
+      "url": "https://www.quora.com/How-can-parents-keep-their-childs-IEP-paperwork-goals-and-progress-organized-year-over-year"
+    },
+
+    {
+      "cluster": "etsy-seller",
+      "priority": 1,
+      "question": "How do Etsy sellers track their sales, fees, and actual profit?",
+      "url": "https://www.quora.com/How-do-Etsy-sellers-track-their-sales-fees-and-actual-profit"
+    },
+    {
+      "cluster": "etsy-seller",
+      "priority": 2,
+      "question": "What is the best way to stay organized as a new Etsy seller?",
+      "url": "https://www.quora.com/What-is-the-best-way-to-stay-organized-as-a-new-Etsy-seller"
+    },
+    {
+      "cluster": "etsy-seller",
+      "priority": 3,
+      "question": "How do successful Etsy sellers manage their shop without burning out?",
+      "url": "https://www.quora.com/How-do-successful-Etsy-sellers-manage-their-shop-without-burning-out"
+    },
+
+    {
+      "cluster": "wedding",
+      "priority": 1,
+      "question": "What is the best wedding planning app for couples doing most of it themselves?",
+      "url": "https://www.quora.com/What-is-the-best-wedding-planning-app-for-couples-doing-most-of-it-themselves"
+    },
+    {
+      "cluster": "wedding",
+      "priority": 2,
+      "question": "How do you stay organized while planning a wedding without losing your mind?",
+      "url": "https://www.quora.com/How-do-you-stay-organized-while-planning-a-wedding-without-losing-your-mind"
+    },
+    {
+      "cluster": "wedding",
+      "priority": 3,
+      "question": "How do couples manage their wedding budget without going over?",
+      "url": "https://www.quora.com/How-do-couples-manage-their-wedding-budget-without-going-over"
+    },
+
+    {
+      "cluster": "baby",
+      "priority": 1,
+      "question": "What is the best baby tracking app for new parents?",
+      "url": "https://www.quora.com/What-is-the-best-baby-tracking-app-for-new-parents"
+    },
+    {
+      "cluster": "baby",
+      "priority": 2,
+      "question": "How do new parents track feeds, sleep, and diapers without losing their minds?",
+      "url": "https://www.quora.com/How-do-new-parents-track-feeds-sleep-and-diapers-without-losing-their-minds"
+    },
+    {
+      "cluster": "baby",
+      "priority": 3,
+      "question": "How can postpartum moms stay organized in the first three months?",
+      "url": "https://www.quora.com/How-can-postpartum-moms-stay-organized-in-the-first-three-months"
+    },
+
+    {
+      "cluster": "homeschool",
+      "priority": 1,
+      "question": "How do homeschool parents stay organized with multiple kids at different grade levels?",
+      "url": "https://www.quora.com/How-do-homeschool-parents-stay-organized-with-multiple-kids-at-different-grade-levels"
+    },
+    {
+      "cluster": "homeschool",
+      "priority": 2,
+      "question": "What is the best homeschool planner for beginners?",
+      "url": "https://www.quora.com/What-is-the-best-homeschool-planner-for-beginners"
+    },
+    {
+      "cluster": "homeschool",
+      "priority": 3,
+      "question": "How do you plan a full homeschool year without paying for expensive curriculum software?",
+      "url": "https://www.quora.com/How-do-you-plan-a-full-homeschool-year-without-paying-for-expensive-curriculum-software"
+    },
+
+    {
+      "cluster": "pet-care",
+      "priority": 1,
+      "question": "How do pet owners keep track of vet appointments, medications, and grooming?",
+      "url": "https://www.quora.com/How-do-pet-owners-keep-track-of-vet-appointments-medications-and-grooming"
+    },
+    {
+      "cluster": "pet-care",
+      "priority": 2,
+      "question": "What is the best app for managing the care of multiple pets?",
+      "url": "https://www.quora.com/What-is-the-best-app-for-managing-the-care-of-multiple-pets"
+    },
+    {
+      "cluster": "pet-care",
+      "priority": 3,
+      "question": "How do you stay organized with pet medications and feeding schedules in a busy household?",
+      "url": "https://www.quora.com/How-do-you-stay-organized-with-pet-medications-and-feeding-schedules-in-a-busy-household"
+    },
+
+    {
+      "cluster": "meal-planning",
+      "priority": 1,
+      "question": "How do families meal plan on a tight budget?",
+      "url": "https://www.quora.com/How-do-families-meal-plan-on-a-tight-budget"
+    },
+    {
+      "cluster": "meal-planning",
+      "priority": 2,
+      "question": "What is the best meal planning app that actually saves money on groceries?",
+      "url": "https://www.quora.com/What-is-the-best-meal-planning-app-that-actually-saves-money-on-groceries"
+    },
+    {
+      "cluster": "meal-planning",
+      "priority": 3,
+      "question": "How do you plan a week of meals when you have picky eaters in the house?",
+      "url": "https://www.quora.com/How-do-you-plan-a-week-of-meals-when-you-have-picky-eaters-in-the-house"
+    },
+
+    {
+      "cluster": "moving",
+      "priority": 1,
+      "question": "How do you stay organized when moving house with a family?",
+      "url": "https://www.quora.com/How-do-you-stay-organized-when-moving-house-with-a-family"
+    },
+    {
+      "cluster": "moving",
+      "priority": 2,
+      "question": "What is the best moving day checklist that actually keeps you on track?",
+      "url": "https://www.quora.com/What-is-the-best-moving-day-checklist-that-actually-keeps-you-on-track"
+    },
+    {
+      "cluster": "moving",
+      "priority": 3,
+      "question": "How do I keep track of utilities, address changes, and packing during a move?",
+      "url": "https://www.quora.com/How-do-I-keep-track-of-utilities-address-changes-and-packing-during-a-move"
+    },
+
+    {
+      "cluster": "travel",
+      "priority": 1,
+      "question": "How do you plan a family vacation without forgetting any of the important details?",
+      "url": "https://www.quora.com/How-do-you-plan-a-family-vacation-without-forgetting-any-of-the-important-details"
+    },
+    {
+      "cluster": "travel",
+      "priority": 2,
+      "question": "What is the best travel planning app for organizing itineraries and bookings?",
+      "url": "https://www.quora.com/What-is-the-best-travel-planning-app-for-organizing-itineraries-and-bookings"
+    },
+    {
+      "cluster": "travel",
+      "priority": 3,
+      "question": "How do you keep all your travel documents, reservations, and packing lists in one place?",
+      "url": "https://www.quora.com/How-do-you-keep-all-your-travel-documents-reservations-and-packing-lists-in-one-place"
+    },
+
+    {
+      "cluster": "generic",
+      "priority": 1,
+      "question": "How do busy families stay organized at home without spending hours on it?",
+      "url": "https://www.quora.com/How-do-busy-families-stay-organized-at-home-without-spending-hours-on-it"
+    },
+    {
+      "cluster": "generic",
+      "priority": 2,
+      "question": "What is the best way to organize a household with kids and two working parents?",
+      "url": "https://www.quora.com/What-is-the-best-way-to-organize-a-household-with-kids-and-two-working-parents"
+    },
+    {
+      "cluster": "generic",
+      "priority": 3,
+      "question": "How do you create a household management system that actually sticks?",
+      "url": "https://www.quora.com/How-do-you-create-a-household-management-system-that-actually-sticks"
+    }
+  ]
+}
