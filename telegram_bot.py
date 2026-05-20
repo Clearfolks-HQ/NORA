@@ -1,16 +1,26 @@
 #!/usr/bin/env python3
 """
 Clearfolks HQ Telegram Bot
-Commands: /categories /add /remove /status /signals /products
+Commands: /categories /add /remove /status /signals /products /outreach
+Also handles inline-button callback_queries from the outreach agent.
 """
 
 import os
+import sys
 import json
 import time
 import urllib.request
 import urllib.parse
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from pathlib import Path
+
+sys.path.insert(0, "/root/clearfolks")
+from outreach import (
+    load_communities, save_communities,
+    load_queue, save_queue,
+    render_group_post,
+    SEP,
+)
 
 TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
@@ -33,6 +43,33 @@ def api(method, params={}):
 
 def send(text, parse_mode="Markdown"):
     api("sendMessage", {"chat_id": CHAT_ID, "text": text, "parse_mode": parse_mode})
+
+def send_plain(text, buttons=None):
+    """Plain-text send (no markdown). Used for outreach which embeds raw chars."""
+    params = {"chat_id": CHAT_ID, "text": text, "disable_web_page_preview": "true"}
+    if buttons is not None:
+        params["reply_markup"] = json.dumps(buttons)
+    return api("sendMessage", params)
+
+def edit_text(message_id, text, buttons=None):
+    """Edit an existing message in-place. Removes buttons unless `buttons` given."""
+    params = {
+        "chat_id": CHAT_ID,
+        "message_id": message_id,
+        "text": text,
+        "disable_web_page_preview": "true",
+    }
+    params["reply_markup"] = json.dumps(buttons if buttons is not None else {"inline_keyboard": []})
+    return api("editMessageText", params)
+
+def answer_cb(cb_id, text=""):
+    return api("answerCallbackQuery", {"callback_query_id": cb_id, "text": text})
+
+def _find_community(db, cid):
+    for c in db["communities"]:
+        if c["id"] == cid:
+            return c
+    return None
 
 def load_categories():
     if not Path(CATEGORIES_FILE).exists():
@@ -170,6 +207,170 @@ def cmd_products():
         )
     send("\n\n".join(lines))
 
+def cmd_outreach():
+    db = load_communities()
+    q = load_queue()
+    today = date.today().isoformat()
+    by_status = {}
+    for c in db["communities"]:
+        by_status[c["status"]] = by_status.get(c["status"], 0) + 1
+    pending = by_status.get("pending", 0)
+    sent = by_status.get("sent", 0)
+    converted = by_status.get("converted", 0)
+    rejected = by_status.get("rejected", 0)
+    skipped = by_status.get("skipped", 0)
+    no_response = by_status.get("no_response", 0)
+    post_shared = by_status.get("post_shared", 0)
+
+    week_start = (date.today() - timedelta(days=7)).isoformat()
+    sent_this_week = sum(
+        1 for c in db["communities"]
+        if c.get("sent_at") and c["sent_at"] >= week_start
+    )
+
+    lines = [
+        "*Clearfolks outreach pipeline*",
+        f"Communities tracked: {len(db['communities'])}",
+        "",
+        f"Pending:        {pending}",
+        f"Sent:           {sent}  (this week: {sent_this_week})",
+        f"No response:    {no_response}",
+        f"Converted:      {converted}",
+        f"Post shared:    {post_shared}",
+        f"Rejected:       {rejected}",
+        f"Skipped:        {skipped}",
+        "",
+    ]
+    if q:
+        same_day = "today" if q.get("date") == today else f"queue date: {q.get('date')}"
+        lines.append(f"Queue ({same_day}): {len(q.get('pending', []))} ready, "
+                     f"{q.get('total_backlog', 0)} in backlog")
+    else:
+        lines.append("No queue file yet — outreach.py --deliver builds it.")
+    send("\n".join(lines))
+
+
+CALLBACK_PREFIXES = ("sent_", "skip_", "edit_", "yes_", "no_", "pending_", "post_shared_", "copy_")
+
+
+def _parse_callback(data_str):
+    for prefix in CALLBACK_PREFIXES:
+        if data_str.startswith(prefix):
+            return prefix[:-1], data_str[len(prefix):]
+    return None, None
+
+
+def handle_callback(cb):
+    cb_id = cb["id"]
+    data_str = cb.get("data", "")
+    msg = cb.get("message", {})
+    message_id = msg.get("message_id")
+
+    action, cid = _parse_callback(data_str)
+    if not action:
+        answer_cb(cb_id, "Unknown action")
+        return
+
+    db = load_communities()
+    c = _find_community(db, cid)
+    if not c:
+        answer_cb(cb_id, "Community not found")
+        return
+    today = date.today().isoformat()
+
+    if action == "sent":
+        c["status"] = "sent"
+        c["sent_at"] = today
+        edit_text(message_id,
+                  f"✅ SENT — {c['name']}\n"
+                  f"   [{c['platform']} · {c['product_match']}]\n"
+                  f"   waiting for response …")
+        followup = "\n".join([
+            SEP, f"✅ {c['name']} — SENT", SEP, "Did they respond?",
+        ])
+        send_plain(followup, buttons={"inline_keyboard": [[
+            {"text": "🎉 They said YES", "callback_data": f"yes_{cid}"},
+            {"text": "❌ They said NO", "callback_data": f"no_{cid}"},
+            {"text": "⏳ No response yet", "callback_data": f"pending_{cid}"},
+        ]]})
+        q = load_queue()
+        if q and cid in q.get("pending", []) and cid not in q.get("sent_today", []):
+            q["sent_today"].append(cid)
+            save_queue(q)
+        answer_cb(cb_id, "Marked sent")
+
+    elif action == "skip":
+        c["status"] = "skipped"
+        c["skipped_at"] = today
+        edit_text(message_id, f"⏭ SKIPPED — {c['name']}\n   [{c['platform']} · {c['product_match']}]")
+        q = load_queue()
+        if q and cid in q.get("pending", []):
+            q["pending"].remove(cid)
+            q.setdefault("skipped_today", []).append(cid)
+            save_queue(q)
+        answer_cb(cb_id, "Skipped")
+
+    elif action == "edit":
+        c["status"] = "edit"
+        c["edit_flagged_at"] = today
+        edit_text(message_id,
+                  f"🔄 EDIT FLAGGED — {c['name']}\n"
+                  f"   [{c['platform']} · {c['product_match']}]\n"
+                  f"   Stays in queue. Revise the draft, then re-deliver.")
+        answer_cb(cb_id, "Flagged for edit")
+
+    elif action == "yes":
+        c["status"] = "converted"
+        c["responded"] = "yes"
+        c["converted_at"] = today
+        c["review_request_due"] = (date.fromisoformat(today) + timedelta(days=14)).isoformat()
+        edit_text(message_id, f"🎉 CONVERTED — {c['name']}")
+        post = render_group_post(c)
+        card = "\n".join([
+            SEP,
+            f"🎉 CONVERTED — {c['name']}",
+            f"Est. reach: {c['size']}",
+            SEP,
+            "SHARE THIS WITH THE GROUP:",
+            SEP,
+            post,
+            SEP,
+        ])
+        send_plain(card, buttons={"inline_keyboard": [[
+            {"text": "✅ Group post shared", "callback_data": f"post_shared_{cid}"},
+            {"text": "📋 Copy post", "callback_data": f"copy_{cid}"},
+        ]]})
+        answer_cb(cb_id, "Marked converted")
+
+    elif action == "no":
+        c["status"] = "rejected"
+        c["responded"] = "no"
+        c["rejected_at"] = today
+        edit_text(message_id, f"❌ REJECTED — {c['name']}\n   Admin declined. Closed.")
+        answer_cb(cb_id, "Marked rejected")
+
+    elif action == "pending":
+        # admin not yet responded — keep status="sent", track will nudge later
+        edit_text(message_id,
+                  f"⏳ WAITING — {c['name']}\n   No response yet. Track will nudge at day 4 / day 10.")
+        answer_cb(cb_id, "Tracking")
+
+    elif action == "post_shared":
+        c["status"] = "post_shared"
+        c["post_shared_at"] = today
+        edit_text(message_id,
+                  f"✅ GROUP POST SHARED — {c['name']}\n"
+                  f"   Review request scheduled for {c.get('review_request_due', '?')}")
+        answer_cb(cb_id, "Logged")
+
+    elif action == "copy":
+        # Send the post as a standalone clean message for easy phone copy
+        send_plain(render_group_post(c))
+        answer_cb(cb_id, "Post sent")
+
+    save_communities(db)
+
+
 def handle(msg):
     text = msg.get("text", "").strip()
     if not text:
@@ -186,8 +387,10 @@ def handle(msg):
         cmd_signals()
     elif text in ["/products", "/products@Cf_pwa_bot"]:
         cmd_products()
+    elif text in ["/outreach", "/outreach@Cf_pwa_bot"]:
+        cmd_outreach()
     elif text in ["/start", "/start@Cf_pwa_bot"]:
-        send("*Clearfolks HQ Bot*\n\nCommands:\n/categories — tracked category list\n/add Name — add a category\n/remove Name — remove a category\n/signals — latest signal report\n/products — all live products\n/status — pipeline status")
+        send("*Clearfolks HQ Bot*\n\nCommands:\n/categories — tracked category list\n/add Name — add a category\n/remove Name — remove a category\n/signals — latest signal report\n/products — all live products\n/outreach — community outreach pipeline status\n/status — pipeline status")
     else:
         send("Unknown command. Try /start for the full list.")
 
@@ -200,6 +403,16 @@ def run():
             result = api("getUpdates", {"offset": offset, "timeout": 10})
             for update in result.get("result", []):
                 offset = update["update_id"] + 1
+                if "callback_query" in update:
+                    cb = update["callback_query"]
+                    chat_id = cb.get("message", {}).get("chat", {}).get("id")
+                    if chat_id == int(CHAT_ID):
+                        try:
+                            handle_callback(cb)
+                        except Exception as e:
+                            print(f"callback handler error: {e}")
+                            answer_cb(cb.get("id", ""), "error — check logs")
+                    continue
                 msg = update.get("message", {})
                 if msg.get("chat", {}).get("id") == int(CHAT_ID):
                     handle(msg)

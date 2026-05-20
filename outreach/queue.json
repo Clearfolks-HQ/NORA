@@ -1,0 +1,37 @@
+{
+  "date": "2026-05-20",
+  "pending": [
+    "com_012",
+    "com_001",
+    "com_003",
+    "com_010",
+    "com_007",
+    "com_005",
+    "com_011",
+    "com_009",
+    "com_002"
+  ],
+  "sent_today": [],
+  "skipped_today": [
+    "com_004"
+  ],
+  "total_backlog": 4,
+  "carryover": [
+    "com_008",
+    "com_013",
+    "com_014",
+    "com_006"
+  ],
+  "message_ids": {
+    "com_012": 140,
+    "com_001": 141,
+    "com_003": 142,
+    "com_010": 143,
+    "com_007": 144,
+    "com_005": 145,
+    "com_011": 146,
+    "com_009": 147,
+    "com_002": 148,
+    "com_004": 149
+  }
+}
