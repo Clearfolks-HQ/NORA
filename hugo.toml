@@ -72,17 +72,42 @@ enableEmoji = false
     "Moving Day Organizer"          = ""
     "Travel Planner"                = ""
 
+  pinterest_verify = "1abbf4c8cff55c1aee4134195567dec6"
+
   # Cluster → display name + app URL map
-  [params.clusters]
-    caregiver     = { label = "Caregiver",        app = "https://app.clearfolks.com/caregiver" }
-    medication    = { label = "Medication",        app = "https://app.clearfolks.com/cf-bqs4r8e9" }
-    iep           = { label = "IEP",               app = "https://app.clearfolks.com/cf-9x25jxsc" }
-    "etsy-seller" = { label = "Etsy Seller",       app = "https://app.clearfolks.com/cf-63nja3ht" }
-    wedding       = { label = "Wedding",           app = "https://app.clearfolks.com/cf-2465sd9i" }
-    baby          = { label = "Baby & Postpartum", app = "https://app.clearfolks.com/cf-q1d4697v" }
-    homeschool    = { label = "Homeschool",        app = "https://app.clearfolks.com/cf-ta6u0cjs" }
-    "pet-care"    = { label = "Pet Care",          app = "https://app.clearfolks.com/cf-eog81o2l" }
-    "meal-planning" = { label = "Meal Planning",   app = "https://app.clearfolks.com/cf-ex31190f" }
-    moving        = { label = "Moving",            app = "https://app.clearfolks.com/cf-ujpf3au3" }
-    travel        = { label = "Travel",            app = "https://app.clearfolks.com/cf-6juuqoo9" }
-    generic       = { label = "Household",         app = "https://clearfolks.com" }
+  [params.clusters.caregiver]
+    label = "Caregiver"
+    app   = "https://app.clearfolks.com/caregiver"
+  [params.clusters.medication]
+    label = "Medication"
+    app   = "https://app.clearfolks.com/cf-bqs4r8e9"
+  [params.clusters.iep]
+    label = "IEP"
+    app   = "https://app.clearfolks.com/cf-9x25jxsc"
+  [params.clusters."etsy-seller"]
+    label = "Etsy Seller"
+    app   = "https://app.clearfolks.com/cf-63nja3ht"
+  [params.clusters.wedding]
+    label = "Wedding"
+    app   = "https://app.clearfolks.com/cf-2465sd9i"
+  [params.clusters.baby]
+    label = "Baby & Postpartum"
+    app   = "https://app.clearfolks.com/cf-q1d4697v"
+  [params.clusters.homeschool]
+    label = "Homeschool"
+    app   = "https://app.clearfolks.com/cf-ta6u0cjs"
+  [params.clusters."pet-care"]
+    label = "Pet Care"
+    app   = "https://app.clearfolks.com/cf-eog81o2l"
+  [params.clusters."meal-planning"]
+    label = "Meal Planning"
+    app   = "https://app.clearfolks.com/cf-ex31190f"
+  [params.clusters.moving]
+    label = "Moving"
+    app   = "https://app.clearfolks.com/cf-ujpf3au3"
+  [params.clusters.travel]
+    label = "Travel"
+    app   = "https://app.clearfolks.com/cf-6juuqoo9"
+  [params.clusters.generic]
+    label = "Household"
+    app   = "https://clearfolks.com"
