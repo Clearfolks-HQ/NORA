@@ -1,0 +1,456 @@
+#!/usr/bin/env python3
+"""
+pinterest_poster.py — schedule Pinterest pins via Buffer.
+
+For each Echo-generated pin draft in ~/clearfolks/drafts/pinterest/:
+  1. Parse TITLE / DESCRIPTION / CTA / HASHTAGS / BOARD + Product footer.
+  2. Map the product → Hugo cluster (same map sofia_blog.py uses).
+  3. Construct the public blog URL  https://blog.clearfolks.com/{cluster}/{slug}
+     where slug is the pin TITLE slugified.
+  4. Attach the matching branded pin image from static/pin-images/{cluster}.png.
+  5. POST to Buffer's update-create endpoint, scheduled at one of the day's
+     two pinning slots (10:00 and 17:00 local).  Caps at 2 pins per run.
+  6. Move processed drafts to drafts/pinterest/processed/.
+  7. Append a JSON-ish line to logs/pinterest.log per draft.
+  8. Send a Telegram summary.
+
+Run modes:
+  python pinterest_poster.py            # live — posts via Buffer
+  python pinterest_poster.py --dry-run  # prints what would be posted, no API
+
+Schedule: 0 10 * * *
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import shutil
+import sys
+import urllib.parse
+import urllib.request
+from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
+
+
+# ── Config ─────────────────────────────────────────────────────────────────
+BASE              = Path("/root/clearfolks")
+DRAFTS_DIR        = BASE / "drafts" / "pinterest"
+PROCESSED_DIR     = DRAFTS_DIR / "processed"
+IMAGES_DIR        = BASE / "static" / "pin-images"
+BOARDS_FILE       = BASE / "pinterest_boards.json"
+LOG_FILE          = BASE / "logs" / "pinterest.log"
+
+BLOG_BASE_URL     = "https://blog.clearfolks.com"
+BUFFER_API_URL    = "https://api.buffer.com/"  # GraphQL, OIDC bearer token
+IMAGES_BASE_URL   = "https://blog.clearfolks.com/pin-images"  # served via Hugo static
+BRAND_CLOSE       = "Made by Clearfolk · clearfolks.com"
+
+# Pin two per day — first cron run at 10:00, second slot is 17:00 same day.
+SCHEDULE_SLOTS    = ["10:00", "17:00"]
+MAX_PER_RUN       = 2
+
+FORBIDDEN = [
+    "revolutionary", "seamless", "intuitive", "game-changing",
+    "simply", "just", "PWA", "Progressive Web App",
+]
+
+FORBIDDEN_REPLACEMENTS = {
+    "revolutionary":       "meaningful",
+    "seamless":            "straightforward",
+    "intuitive":           "clear",
+    "game-changing":       "useful",
+    "simply":              "",
+    "just":                "",
+    "pwa":                 "app",
+    "progressive web app": "app",
+}
+
+# Product → Hugo cluster slug.  Mirrors sofia_blog.PRODUCT_TO_CLUSTER plus
+# the looser variants that show up in Echo's pin drafts.
+PRODUCT_TO_CLUSTER = {
+    "Caregiver Command Center":          "caregiver",
+    "Caregiver Organizer App":           "caregiver",
+    "Medication Tracker":                "medication",
+    "Medication Tracker App":            "medication",
+    "IEP Parent Binder":                 "iep",
+    "IEP Parent Binder App":             "iep",
+    "IEP Meeting Prep Kit":              "iep",
+    "Etsy Seller Business System":       "etsy-seller",
+    "Etsy Profit Tracker":               "etsy-seller",
+    "Wedding Planning App":              "wedding",
+    "Baby Tracker and Postpartum App":   "baby",
+    "Baby Tracker & Postpartum App":     "baby",
+    "Baby Tracker":                      "baby",
+    "Homeschool Planner App":            "homeschool",
+    "Pet Care Organizer":                "pet-care",
+    "Pet Care Organizer App":            "pet-care",
+    "Meal Planner and Grocery App":      "meal-planning",
+    "Meal Planner and Grocery":          "meal-planning",
+    "Meal Planner & Grocery App":        "meal-planning",
+    "Meal Planner":                      "meal-planning",
+    "Moving Day Organizer App":          "moving",
+    "Moving Day Organizer":              "moving",
+    "Travel Planner App":                "travel",
+    "Travel Planner":                    "travel",
+}
+
+
+# ── Logging ────────────────────────────────────────────────────────────────
+def log(msg: str) -> None:
+    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    line = f"[{ts}] {msg}"
+    print(line)
+    LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with open(LOG_FILE, "a") as f:
+        f.write(line + "\n")
+
+
+# ── Draft parser ───────────────────────────────────────────────────────────
+DRAFT_FIELDS = {
+    "TITLE":       re.compile(r"^TITLE:\s*(.+)$", re.M),
+    "DESCRIPTION": re.compile(r"^DESCRIPTION:\s*(.+(?:\n(?!CTA:|HASHTAGS:|BOARD:|---).+)*)", re.M),
+    "CTA":         re.compile(r"^CTA:\s*(.+)$", re.M),
+    "HASHTAGS":    re.compile(r"^HASHTAGS:\s*(.+)$", re.M),
+    "BOARD":       re.compile(r"^BOARD:\s*(.+)$", re.M),
+}
+PRODUCT_FOOTER = re.compile(r"\*Generated:.*?\|\s*Product:\s*(.+?)\*", re.S)
+SOURCE_HEADER  = re.compile(r"^\*\*Source:\*\*\s*(\S+)", re.M)
+
+
+def parse_draft(path: Path) -> dict | None:
+    raw = path.read_text(encoding="utf-8")
+
+    out: dict = {"path": path}
+
+    for key, rx in DRAFT_FIELDS.items():
+        m = rx.search(raw)
+        out[key.lower()] = m.group(1).strip() if m else ""
+
+    m = PRODUCT_FOOTER.search(raw)
+    out["product"] = m.group(1).strip().rstrip("*").strip() if m else ""
+
+    m = SOURCE_HEADER.search(raw)
+    out["source"] = m.group(1).strip() if m else ""
+
+    if not out["title"] or not out["description"]:
+        return None
+    return out
+
+
+# ── Helpers ────────────────────────────────────────────────────────────────
+def slugify(text: str) -> str:
+    slug = text.lower()
+    slug = re.sub(r"[^a-z0-9\s-]", "", slug)
+    slug = re.sub(r"\s+", "-", slug.strip())
+    slug = re.sub(r"-+", "-", slug)
+    return slug[:80]
+
+
+def strip_forbidden(text: str) -> tuple[str, list[str]]:
+    """Replace forbidden words case-insensitively.  Returns (cleaned, found)."""
+    found: list[str] = []
+    cleaned = text
+    for word, replacement in FORBIDDEN_REPLACEMENTS.items():
+        rx = re.compile(rf"\b{re.escape(word)}\b", re.IGNORECASE)
+        if rx.search(cleaned):
+            found.append(word)
+            cleaned = rx.sub(replacement, cleaned)
+    # collapse double spaces left behind by replacements
+    cleaned = re.sub(r"\s{2,}", " ", cleaned).strip()
+    return cleaned, found
+
+
+def build_post_text(draft: dict, blog_url: str) -> str:
+    """Assemble the Pinterest caption — description + CTA + link + brand close + hashtags."""
+    parts = [
+        draft["description"],
+        "",
+        draft["cta"],
+        "",
+        f"Read the full guide → {blog_url}",
+        "",
+        BRAND_CLOSE,
+        "",
+        draft["hashtags"],
+    ]
+    return "\n".join(p for p in parts if p != "")
+
+
+def next_slot(slot_index: int, now: datetime | None = None) -> datetime:
+    """Return the next datetime for the given slot index (0 = first slot, 1 = second).
+    If today's slot has already passed, roll to tomorrow."""
+    now = now or datetime.now()
+    hh, mm = SCHEDULE_SLOTS[slot_index].split(":")
+    candidate = now.replace(hour=int(hh), minute=int(mm), second=0, microsecond=0)
+    if candidate <= now:
+        candidate += timedelta(days=1)
+    return candidate
+
+
+def load_boards_config() -> dict:
+    with open(BOARDS_FILE) as f:
+        return json.load(f)
+
+
+# ── Buffer GraphQL API ─────────────────────────────────────────────────────
+CREATE_POST_MUTATION = """
+mutation CreatePost($input: CreatePostInput!) {
+  createPost(input: $input) {
+    ... on PostActionSuccess { message post { id status dueAt channel { name } } }
+    ... on CommonResponseError { error: message }
+  }
+}
+""".strip()
+
+
+def post_to_buffer(token: str, channel_id: str, board_service_id: str,
+                   text: str, title: str, link: str, image_url: str,
+                   scheduled_at: datetime) -> tuple[bool, str]:
+    """Schedule a Pinterest pin via Buffer GraphQL.  Returns (ok, response_body)."""
+    due_at_utc = scheduled_at.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    variables = {
+        "input": {
+            "channelId":      channel_id,
+            "text":           text,
+            "schedulingType": "automatic",
+            "dueAt":          due_at_utc,
+            "mode":           "customScheduled",
+            "assets":         [{"image": {"url": image_url}}],
+            "metadata": {
+                "pinterest": {
+                    "title":          title,
+                    "url":            link,
+                    "boardServiceId": board_service_id,
+                }
+            },
+            "source":      "clearfolks-pinterest-poster",
+        }
+    }
+    payload = json.dumps({"query": CREATE_POST_MUTATION, "variables": variables}).encode()
+    req = urllib.request.Request(
+        BUFFER_API_URL, data=payload, method="POST",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type":  "application/json",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            body = resp.read().decode()
+        parsed = json.loads(body) if body else {}
+        if parsed.get("errors"):
+            return False, body
+        node = (parsed.get("data") or {}).get("createPost") or {}
+        if node.get("error"):
+            return False, body
+        return True, body
+    except Exception as e:
+        return False, f"exception: {e}"
+
+
+# ── Telegram ───────────────────────────────────────────────────────────────
+def send_telegram(message: str) -> None:
+    token   = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
+    if not token or not chat_id:
+        log("Telegram credentials not set — skipping notification.")
+        return
+    data = urllib.parse.urlencode({
+        "chat_id":    chat_id,
+        "text":       message,
+        "parse_mode": "HTML",
+    }).encode()
+    req = urllib.request.Request(
+        f"https://api.telegram.org/bot{token}/sendMessage",
+        data=data, method="POST",
+    )
+    try:
+        urllib.request.urlopen(req, timeout=10)
+    except Exception as e:
+        log(f"Telegram send failed: {e}")
+
+
+# ── Main pipeline ──────────────────────────────────────────────────────────
+def run(dry_run: bool) -> int:
+    PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+
+    drafts = sorted(p for p in DRAFTS_DIR.glob("*.md") if p.is_file())
+    if not drafts:
+        log("No pin drafts found — nothing to do.")
+        return 0
+
+    cfg            = load_boards_config()
+    boards         = cfg.get("boards", {})
+    channel        = cfg.get("channel", {})
+    fallback_board = cfg.get("fallback_board", {})
+    channel_id     = channel.get("id", "")
+    buffer_token   = os.environ.get("BUFFER_TOKEN", "")
+
+    safe_mode = False
+    if not dry_run and (not buffer_token or not channel_id):
+        log("BUFFER_TOKEN or channel.id missing — switching to safe (no-post) mode.")
+        safe_mode = True
+
+    today_label = date.today().strftime("%b %d")
+    scheduled: list[dict] = []
+    skipped:   list[dict] = []
+
+    log(f"Found {len(drafts)} draft(s); will schedule up to {MAX_PER_RUN}.")
+
+    for slot_index, draft_path in enumerate(drafts[:MAX_PER_RUN]):
+        draft = parse_draft(draft_path)
+        if not draft:
+            log(f"  Skipping {draft_path.name} — missing TITLE/DESCRIPTION.")
+            skipped.append({"file": draft_path.name, "reason": "unparseable"})
+            continue
+
+        cluster = PRODUCT_TO_CLUSTER.get(draft["product"], "generic")
+        slug    = slugify(draft["title"])
+        blog_url = f"{BLOG_BASE_URL}/{cluster}/{slug}/"
+
+        image_path = IMAGES_DIR / f"{cluster}.png"
+        image_url  = f"{IMAGES_BASE_URL}/{cluster}.png"
+
+        # Sanitize forbidden words in the caption + hashtags
+        clean_desc,    bad_desc    = strip_forbidden(draft["description"])
+        clean_cta,     bad_cta     = strip_forbidden(draft["cta"])
+        clean_hash,    bad_hash    = strip_forbidden(draft["hashtags"])
+        draft["description"], draft["cta"], draft["hashtags"] = clean_desc, clean_cta, clean_hash
+        all_bad = sorted(set(bad_desc + bad_cta + bad_hash))
+
+        caption = build_post_text(draft, blog_url)
+        scheduled_at = next_slot(slot_index)
+
+        board_meta       = boards.get(cluster, {})
+        board_name       = board_meta.get("board", "")
+        board_service_id = board_meta.get("board_service_id", "REPLACE_ME")
+        used_fallback    = False
+        if board_service_id == "REPLACE_ME":
+            board_service_id = fallback_board.get("board_service_id", "REPLACE_ME")
+            board_name       = f"{fallback_board.get('board','?')} (fallback for {cluster})"
+            used_fallback    = True
+
+        record = {
+            "file":             draft_path.name,
+            "product":          draft["product"],
+            "cluster":          cluster,
+            "board":            board_name,
+            "board_service_id": board_service_id,
+            "used_fallback":    used_fallback,
+            "title":            draft["title"],
+            "blog_url":         blog_url,
+            "image_path":       str(image_path),
+            "image_url":        image_url,
+            "scheduled_at":     scheduled_at.isoformat(timespec="minutes"),
+            "forbidden_stripped": all_bad,
+            "caption":          caption,
+        }
+
+        if not image_path.exists():
+            log(f"  ⚠ Image not found for cluster '{cluster}' — {image_path}")
+            record["status"] = "skipped:no_image"
+            skipped.append(record)
+            continue
+
+        if dry_run:
+            log(f"  [DRY-RUN] would schedule pin from {draft_path.name}")
+            log(f"    cluster      : {cluster}")
+            log(f"    product      : {draft['product']}")
+            log(f"    board        : {board_name}  (board_service_id={board_service_id})")
+            log(f"    title        : {draft['title']}")
+            log(f"    blog url     : {blog_url}")
+            log(f"    image (file) : {image_path}  ({'exists' if image_path.exists() else 'MISSING'})")
+            log(f"    image (url)  : {image_url}")
+            log(f"    scheduled_at : {record['scheduled_at']}")
+            if all_bad:
+                log(f"    ⚠ forbidden words stripped: {', '.join(all_bad)}")
+            log(f"    caption ↓↓↓")
+            for ln in caption.split("\n"):
+                log(f"      {ln}")
+            log(f"    caption ↑↑↑ ({len(caption)} chars)")
+            record["status"] = "dry-run"
+            scheduled.append(record)
+            continue
+
+        if safe_mode or board_service_id == "REPLACE_ME":
+            log(f"  ⏸ Safe mode (no token/channel or placeholder board) — not posting {cluster}.")
+            record["status"] = "skipped:safe_mode"
+            skipped.append(record)
+            continue
+
+        ok, body = post_to_buffer(
+            token=buffer_token,
+            channel_id=channel_id,
+            board_service_id=board_service_id,
+            text=caption,
+            title=draft["title"],
+            link=blog_url,
+            image_url=image_url,
+            scheduled_at=scheduled_at,
+        )
+        if ok:
+            log(f"  ✓ Scheduled {cluster} on Buffer @ {record['scheduled_at']}")
+            record["status"] = "scheduled"
+            scheduled.append(record)
+            shutil.move(str(draft_path), str(PROCESSED_DIR / draft_path.name))
+        else:
+            log(f"  ✗ Buffer error for {draft_path.name}: {body[:200]}")
+            record["status"] = f"error: {body[:120]}"
+            skipped.append(record)
+
+    # Append structured records
+    with open(LOG_FILE, "a") as f:
+        for r in scheduled + skipped:
+            f.write(json.dumps({"event": "pin", **{k: v for k, v in r.items() if k != "caption"}}) + "\n")
+
+    # Telegram summary
+    lines = [f"📌 <b>Pinterest Report — {today_label}</b>", ""]
+    if dry_run:
+        lines.append("<i>DRY RUN — nothing was posted.</i>")
+        lines.append("")
+    if scheduled:
+        lines.append(f"✅ Scheduled {len(scheduled)} pin(s):")
+        for r in scheduled:
+            fb = "  (fallback board)" if r.get("used_fallback") else ""
+            lines.append(f"  • [{r['cluster']}] {r['title']}{fb}")
+            lines.append(f"     → {r['blog_url']}")
+    if skipped:
+        lines.append("")
+        lines.append(f"⚠️ Skipped {len(skipped)}:")
+        for r in skipped:
+            lines.append(f"  • {r.get('file','?')} — {r.get('status','?')}")
+    lines.append("")
+    lines.append(BRAND_CLOSE)
+    summary = "\n".join(lines)
+
+    if dry_run:
+        log("--- TELEGRAM SUMMARY (not sent in dry-run) ---")
+        for ln in summary.split("\n"):
+            log(ln)
+    else:
+        send_telegram(summary)
+
+    return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Schedule Pinterest pins via Buffer.")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Show what would be scheduled without calling Buffer.")
+    args = parser.parse_args()
+
+    log("=" * 60)
+    log(f"Pinterest poster starting (dry_run={args.dry_run})")
+    log("=" * 60)
+
+    rc = run(dry_run=args.dry_run)
+
+    log("Pinterest poster complete.")
+    return rc
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,77 @@
+{
+  "_comment": "Maps each Hugo cluster to its Pinterest board on @clearfolkshop. Buffer needs `board_service_id` (Pinterest's own ID) when scheduling — `board_id` is the Buffer-side ID, kept for reference. Update both fields once a board is created on Pinterest. Until then, REPLACE_ME entries fall back to the `fallback_board` (Quick Saves).",
+  "_fetched_at": "2026-05-20",
+  "_endpoint": "https://api.buffer.com/ (GraphQL, OIDC bearer)",
+  "channel": {
+    "id": "6a0d6876090476fb993c99dc",
+    "name": "clearfolkshop",
+    "service": "pinterest"
+  },
+  "fallback_board": {
+    "board": "Quick Saves",
+    "board_id": "6a0d68762b6586222a0ed540",
+    "board_service_id": "1089097191078813243"
+  },
+  "boards": {
+    "caregiver": {
+      "board": "Caregiver Tools & Resources",
+      "board_id": "6a0d68762b6586222a0ed53e",
+      "board_service_id": "1089097191078813166"
+    },
+    "medication": {
+      "board": "Medication Tracking",
+      "board_id": "REPLACE_ME",
+      "board_service_id": "REPLACE_ME"
+    },
+    "iep": {
+      "board": "IEP Parent Resources",
+      "board_id": "REPLACE_ME",
+      "board_service_id": "REPLACE_ME"
+    },
+    "etsy-seller": {
+      "board": "Etsy Seller Tips",
+      "board_id": "6a0d68762b6586222a0ed53f",
+      "board_service_id": "1089097191078656939"
+    },
+    "wedding": {
+      "board": "Calm Wedding Planning",
+      "board_id": "REPLACE_ME",
+      "board_service_id": "REPLACE_ME"
+    },
+    "baby": {
+      "board": "New Parent Survival Guide",
+      "board_id": "REPLACE_ME",
+      "board_service_id": "REPLACE_ME"
+    },
+    "homeschool": {
+      "board": "Homeschool Planning",
+      "board_id": "REPLACE_ME",
+      "board_service_id": "REPLACE_ME"
+    },
+    "pet-care": {
+      "board": "Pet Care Organizer",
+      "board_id": "REPLACE_ME",
+      "board_service_id": "REPLACE_ME"
+    },
+    "meal-planning": {
+      "board": "Budget Meal Planning for Families",
+      "board_id": "REPLACE_ME",
+      "board_service_id": "REPLACE_ME"
+    },
+    "moving": {
+      "board": "Moving Day Checklists",
+      "board_id": "REPLACE_ME",
+      "board_service_id": "REPLACE_ME"
+    },
+    "travel": {
+      "board": "Family Travel Planning",
+      "board_id": "REPLACE_ME",
+      "board_service_id": "REPLACE_ME"
+    },
+    "generic": {
+      "board": "Household Organisation",
+      "board_id": "REPLACE_ME",
+      "board_service_id": "REPLACE_ME"
+    }
+  }
+}
