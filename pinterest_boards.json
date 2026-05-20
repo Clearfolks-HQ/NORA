@@ -3,75 +3,75 @@
   "_fetched_at": "2026-05-20",
   "_endpoint": "https://api.buffer.com/ (GraphQL, OIDC bearer)",
   "channel": {
-    "id": "6a0d6876090476fb993c99dc",
+    "id": "6a0d7f4a090476fb993cf985",
     "name": "clearfolkshop",
     "service": "pinterest"
   },
   "fallback_board": {
     "board": "Quick Saves",
-    "board_id": "6a0d68762b6586222a0ed540",
+    "board_id": "6a0d7f4b81785e4822065c13",
     "board_service_id": "1089097191078813243"
   },
   "boards": {
     "caregiver": {
       "board": "Caregiver Tools & Resources",
-      "board_id": "6a0d68762b6586222a0ed53e",
+      "board_id": "6a0d7f4b81785e4822065c0a",
       "board_service_id": "1089097191078813166"
     },
     "medication": {
       "board": "Medication Tracking",
-      "board_id": "REPLACE_ME",
-      "board_service_id": "REPLACE_ME"
+      "board_id": "6a0d7f4b81785e4822065c10",
+      "board_service_id": "1089097191078919000"
     },
     "iep": {
-      "board": "IEP Parent Resources",
-      "board_id": "REPLACE_ME",
-      "board_service_id": "REPLACE_ME"
+      "board": "IEP & Special Needs",
+      "board_id": "6a0d7f4b81785e4822065c0e",
+      "board_service_id": "1089097191078919001"
     },
     "etsy-seller": {
       "board": "Etsy Seller Tips",
-      "board_id": "6a0d68762b6586222a0ed53f",
+      "board_id": "6a0d7f4b81785e4822065c0b",
       "board_service_id": "1089097191078656939"
     },
     "wedding": {
-      "board": "Calm Wedding Planning",
-      "board_id": "REPLACE_ME",
-      "board_service_id": "REPLACE_ME"
+      "board": "Wedding Planning",
+      "board_id": "6a0d7f4b81785e4822065c15",
+      "board_service_id": "1089097191078919003"
     },
     "baby": {
-      "board": "New Parent Survival Guide",
-      "board_id": "REPLACE_ME",
-      "board_service_id": "REPLACE_ME"
+      "board": "Baby & Postpartum",
+      "board_id": "6a0d7f4b81785e4822065c09",
+      "board_service_id": "1089097191078919004"
     },
     "homeschool": {
       "board": "Homeschool Planning",
-      "board_id": "REPLACE_ME",
-      "board_service_id": "REPLACE_ME"
+      "board_id": "6a0d7f4b81785e4822065c0c",
+      "board_service_id": "1089097191078919005"
     },
     "pet-care": {
-      "board": "Pet Care Organizer",
-      "board_id": "REPLACE_ME",
-      "board_service_id": "REPLACE_ME"
+      "board": "Pet Care",
+      "board_id": "6a0d7f4b81785e4822065c12",
+      "board_service_id": "1089097191078919007"
     },
     "meal-planning": {
-      "board": "Budget Meal Planning for Families",
-      "board_id": "REPLACE_ME",
-      "board_service_id": "REPLACE_ME"
+      "board": "Meal Planning",
+      "board_id": "6a0d7f4b81785e4822065c0f",
+      "board_service_id": "1089097191078919008"
     },
     "moving": {
-      "board": "Moving Day Checklists",
-      "board_id": "REPLACE_ME",
-      "board_service_id": "REPLACE_ME"
+      "board": "Moving Tips",
+      "board_id": "6a0d7f4b81785e4822065c11",
+      "board_service_id": "1089097191078919009"
     },
     "travel": {
-      "board": "Family Travel Planning",
-      "board_id": "REPLACE_ME",
-      "board_service_id": "REPLACE_ME"
+      "board": "Travel Planning",
+      "board_id": "6a0d7f4b81785e4822065c14",
+      "board_service_id": "1089097191078919010"
     },
     "generic": {
-      "board": "Household Organisation",
-      "board_id": "REPLACE_ME",
-      "board_service_id": "REPLACE_ME"
+      "board": "Household Organization",
+      "board_id": "6a0d7f4b81785e4822065c0d",
+      "board_service_id": "1089097191078919013"
     }
   }
 }

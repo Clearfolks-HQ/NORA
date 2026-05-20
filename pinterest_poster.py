@@ -29,6 +29,7 @@ import os
 import re
 import shutil
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import date, datetime, timedelta, timezone
@@ -163,20 +164,38 @@ def strip_forbidden(text: str) -> tuple[str, list[str]]:
     return cleaned, found
 
 
-def build_post_text(draft: dict, blog_url: str) -> str:
-    """Assemble the Pinterest caption — description + CTA + link + brand close + hashtags."""
-    parts = [
-        draft["description"],
-        "",
-        draft["cta"],
-        "",
-        f"Read the full guide → {blog_url}",
-        "",
-        BRAND_CLOSE,
-        "",
-        draft["hashtags"],
-    ]
-    return "\n".join(p for p in parts if p != "")
+PINTEREST_MAX_CHARS = 500
+
+
+def build_post_text(draft: dict, blog_url: str, max_chars: int = PINTEREST_MAX_CHARS) -> str:
+    """Assemble the Pinterest caption — description + CTA + link + brand close + hashtags.
+    Pinterest rejects descriptions over 500 chars; if the full caption exceeds the cap,
+    the description body is shortened (with an ellipsis) while everything else is kept."""
+    def assemble(desc: str) -> str:
+        parts = [
+            desc,
+            "",
+            draft["cta"],
+            "",
+            f"Read the full guide → {blog_url}",
+            "",
+            BRAND_CLOSE,
+            "",
+            draft["hashtags"],
+        ]
+        return "\n".join(p for p in parts if p != "")
+
+    text = assemble(draft["description"])
+    if len(text) <= max_chars:
+        return text
+
+    # Reserve room for everything except the description body, then fit the rest.
+    overhead = len(assemble("X")) - 1
+    budget = max_chars - overhead
+    if budget <= 1:
+        return text[:max_chars]
+    truncated = draft["description"][: budget - 1].rstrip() + "…"
+    return assemble(truncated)
 
 
 def next_slot(slot_index: int, now: datetime | None = None) -> datetime:
@@ -199,8 +218,14 @@ def load_boards_config() -> dict:
 CREATE_POST_MUTATION = """
 mutation CreatePost($input: CreatePostInput!) {
   createPost(input: $input) {
-    ... on PostActionSuccess { message post { id status dueAt channel { name } } }
-    ... on CommonResponseError { error: message }
+    __typename
+    ... on PostActionSuccess { post { id status dueAt channel { name } } }
+    ... on NotFoundError { message }
+    ... on UnauthorizedError { message }
+    ... on UnexpectedError { message }
+    ... on RestProxyError { message link code }
+    ... on LimitReachedError { message }
+    ... on InvalidInputError { message }
   }
 }
 """.strip()
@@ -240,15 +265,18 @@ def post_to_buffer(token: str, channel_id: str, board_service_id: str,
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             body = resp.read().decode()
-        parsed = json.loads(body) if body else {}
-        if parsed.get("errors"):
-            return False, body
-        node = (parsed.get("data") or {}).get("createPost") or {}
-        if node.get("error"):
-            return False, body
-        return True, body
+    except urllib.error.HTTPError as e:
+        body = e.read().decode() if hasattr(e, "read") else ""
+        return False, body or f"HTTPError {e.code} (no body)"
     except Exception as e:
         return False, f"exception: {e}"
+    parsed = json.loads(body) if body else {}
+    if parsed.get("errors"):
+        return False, body
+    node = (parsed.get("data") or {}).get("createPost") or {}
+    if node.get("__typename") != "PostActionSuccess":
+        return False, body
+    return True, body
 
 
 # ── Telegram ───────────────────────────────────────────────────────────────
@@ -274,7 +302,7 @@ def send_telegram(message: str) -> None:
 
 
 # ── Main pipeline ──────────────────────────────────────────────────────────
-def run(dry_run: bool) -> int:
+def run(dry_run: bool, limit: int | None = None) -> int:
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
     drafts = sorted(p for p in DRAFTS_DIR.glob("*.md") if p.is_file())
@@ -298,9 +326,10 @@ def run(dry_run: bool) -> int:
     scheduled: list[dict] = []
     skipped:   list[dict] = []
 
-    log(f"Found {len(drafts)} draft(s); will schedule up to {MAX_PER_RUN}.")
+    effective_limit = limit if limit is not None else MAX_PER_RUN
+    log(f"Found {len(drafts)} draft(s); will schedule up to {effective_limit}.")
 
-    for slot_index, draft_path in enumerate(drafts[:MAX_PER_RUN]):
+    for slot_index, draft_path in enumerate(drafts[:effective_limit]):
         draft = parse_draft(draft_path)
         if not draft:
             log(f"  Skipping {draft_path.name} — missing TITLE/DESCRIPTION.")
@@ -391,13 +420,25 @@ def run(dry_run: bool) -> int:
             image_url=image_url,
             scheduled_at=scheduled_at,
         )
+        try:
+            pretty_body = json.dumps(json.loads(body), indent=2)
+        except Exception:
+            pretty_body = body
         if ok:
             log(f"  ✓ Scheduled {cluster} on Buffer @ {record['scheduled_at']}")
+            log("  Buffer response ↓↓↓")
+            for ln in pretty_body.split("\n"):
+                log(f"    {ln}")
+            log("  Buffer response ↑↑↑")
             record["status"] = "scheduled"
             scheduled.append(record)
             shutil.move(str(draft_path), str(PROCESSED_DIR / draft_path.name))
         else:
-            log(f"  ✗ Buffer error for {draft_path.name}: {body[:200]}")
+            log(f"  ✗ Buffer error for {draft_path.name}")
+            log("  Buffer response ↓↓↓")
+            for ln in pretty_body.split("\n"):
+                log(f"    {ln}")
+            log("  Buffer response ↑↑↑")
             record["status"] = f"error: {body[:120]}"
             skipped.append(record)
 
@@ -438,15 +479,20 @@ def run(dry_run: bool) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Schedule Pinterest pins via Buffer.")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Show what would be scheduled without calling Buffer.")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--dry-run", action="store_true",
+                     help="Show what would be scheduled without calling Buffer.")
+    mode.add_argument("--live", action="store_true",
+                     help="Explicit opt-in for live posting (same as default; useful for ad-hoc runs).")
+    parser.add_argument("--limit", type=int, default=None,
+                        help=f"Cap drafts processed this run (default {MAX_PER_RUN}).")
     args = parser.parse_args()
 
     log("=" * 60)
-    log(f"Pinterest poster starting (dry_run={args.dry_run})")
+    log(f"Pinterest poster starting (dry_run={args.dry_run}, live={args.live}, limit={args.limit})")
     log("=" * 60)
 
-    rc = run(dry_run=args.dry_run)
+    rc = run(dry_run=args.dry_run, limit=args.limit)
 
     log("Pinterest poster complete.")
     return rc
