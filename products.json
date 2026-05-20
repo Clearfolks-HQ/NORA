@@ -1,0 +1,121 @@
+{
+  "updated": "2026-04-23",
+  "products": [
+    {
+      "id": "P0001",
+      "name": "Caregiver Command Center",
+      "slug": "caregiver",
+      "url": "https://app.clearfolks.com/caregiver",
+      "status": "live",
+      "category": "Caregiver support",
+      "etsy_listing": "live",
+      "etsy_url": "https://www.etsy.com/listing/4490826785/caregiver-organizer-app-medication"
+    },
+    {
+      "id": "P0002",
+      "name": "Medication Tracker",
+      "slug": "cf-bqs4r8e9",
+      "url": "https://app.clearfolks.com/cf-bqs4r8e9",
+      "status": "live",
+      "category": "Caregiver support",
+      "etsy_listing": "live",
+      "etsy_url": "https://www.etsy.com/listing/4490844238/medication-tracker-app-track-doses"
+    },
+    {
+      "id": "P0003",
+      "name": "IEP Parent Binder",
+      "slug": "cf-9x25jxsc",
+      "url": "https://app.clearfolks.com/cf-9x25jxsc",
+      "status": "live",
+      "category": "Special education",
+      "etsy_listing": "live",
+      "etsy_url": "https://www.etsy.com/listing/4490835131/iep-parent-binder-app-track-goals"
+    },
+    {
+      "id": "P0004",
+      "name": "IEP Meeting Prep Kit",
+      "slug": "cf-qatxssg7",
+      "url": "https://app.clearfolks.com/cf-qatxssg7",
+      "status": "live",
+      "category": "Special education",
+      "etsy_listing": "live",
+      "etsy_url": "https://www.etsy.com/listing/4490828563/iep-meeting-prep-kit-28-questions-parent"
+    },
+    {
+      "id": "P0005",
+      "name": "Etsy Seller Business System",
+      "slug": "cf-63nja3ht",
+      "url": "https://app.clearfolks.com/cf-63nja3ht",
+      "status": "live",
+      "category": "Etsy sellers",
+      "etsy_listing": "live",
+      "etsy_url": "https://www.etsy.com/listing/4490841158/etsy-profit-tracker-app-sales-fees"
+    },
+    {
+      "id": "P0006",
+      "name": "Wedding Planning App",
+      "slug": "cf-2465sd9i",
+      "url": "https://app.clearfolks.com/cf-2465sd9i",
+      "status": "live",
+      "category": "Wedding planning",
+      "etsy_listing": "pending",
+      "etsy_url": ""
+    },
+    {
+      "id": "P0007",
+      "name": "Baby Tracker & Postpartum App",
+      "slug": "cf-q1d4697v",
+      "url": "https://app.clearfolks.com/cf-q1d4697v",
+      "status": "live",
+      "category": "New baby and postpartum",
+      "etsy_listing": "pending",
+      "qa_status": "pass",
+      "qa_notes": "Manual QA found 6 systemic bugs 2026-05-14 (toggle UI, form binding, render fallthrough, diaper quick-log, sleep/diaper delete, milestone tabs). All 6 fixed via full JS handler rewrite; automated qa.py 6/6 + jsdom behavior probe verifies each fix. Etsy listing still blocked pending manual retest."
+    },
+    {
+      "id": "P0008",
+      "name": "Homeschool Planner App",
+      "slug": "cf-ta6u0cjs",
+      "url": "https://app.clearfolks.com/cf-ta6u0cjs",
+      "status": "live",
+      "category": "Homeschool planning",
+      "etsy_listing": "pending"
+    },
+    {
+      "id": "P0009",
+      "name": "Pet Care Organizer App",
+      "slug": "cf-eog81o2l",
+      "url": "https://app.clearfolks.com/cf-eog81o2l",
+      "status": "live",
+      "category": "Pet care management",
+      "etsy_listing": "pending"
+    },
+    {
+      "id": "P0010",
+      "name": "Meal Planner & Grocery App",
+      "slug": "cf-ex31190f",
+      "url": "https://app.clearfolks.com/cf-ex31190f",
+      "status": "live",
+      "category": "Meal planning and grocery",
+      "etsy_listing": "pending"
+    },
+    {
+      "id": "P0011",
+      "name": "Moving Day Organizer App",
+      "slug": "cf-ujpf3au3",
+      "url": "https://app.clearfolks.com/cf-ujpf3au3",
+      "status": "live",
+      "category": "Moving house organizer",
+      "etsy_listing": "pending"
+    },
+    {
+      "id": "P0012",
+      "name": "Travel Planner App",
+      "slug": "cf-6juuqoo9",
+      "url": "https://app.clearfolks.com/cf-6juuqoo9",
+      "status": "live",
+      "category": "Travel planning",
+      "etsy_listing": "pending"
+    }
+  ]
+}
