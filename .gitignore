@@ -4,6 +4,7 @@ __pycache__/
 .env
 logs/
 drafts/blog/processed/
+drafts/pinterest/processed/
 signals/
 screenshots/
 videos/
