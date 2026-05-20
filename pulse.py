@@ -5,6 +5,7 @@ Reads subreddits.json, fetches RSS, scores buying signals, saves report.
 """
 
 import os
+import re
 import sys
 import json
 import urllib.request
@@ -20,7 +21,7 @@ SIGNALS_DIR = "/root/clearfolks/signals"
 LOGS_DIR = "/root/clearfolks/logs"
 BLOG_BASE_URL = "https://blog.clearfolks.com"
 
-SIGNAL_PROMPT = """You are Pulse, a buying signal analyst for Clearfolks Templates — an Etsy store selling PWA digital organizer apps.
+SIGNAL_PROMPT = """You are Pulse, a buying signal analyst for Clearfolks Templates — an Etsy store selling lightweight digital organizer apps.
 
 Our products are lightweight web apps installed to phone home screen. Works offline. One payment, lifetime access, no subscription. Shareable across household.
 
@@ -50,6 +51,11 @@ HIGH INTENT signals — people who:
 
 Score 1-10. Only include posts scoring 6 or above.
 
+REPLY COPY RULES (apply to "suggested_response" — non-negotiable):
+- Warm, practical, no hype. Sound like a real person who has been through this, not a marketer.
+- NEVER use any of these words: revolutionary, seamless, intuitive, game-changing, game-changer, simply, just, PWA, Progressive Web App.
+- No exclamation marks.
+
 Output a JSON array only, no other text:
 [
   {
@@ -62,7 +68,7 @@ Output a JSON array only, no other text:
     "pain_point": "one sentence on their organizational pain",
     "product_match": "exact product name or Upcoming: Product Name",
     "score": 7,
-    "suggested_response": "helpful empathetic reply that: (1) acknowledges pain, (2) gives one practical tip, (3) mentions the product by exact name with ONE differentiator: lifetime access OR works offline OR shareable across household"
+    "suggested_response": "helpful empathetic reply that: (1) acknowledges pain, (2) gives one practical tip, (3) mentions the product by exact name with ONE differentiator: lifetime access OR works offline OR shareable across household. Obeys the REPLY COPY RULES above."
   }
 ]
 
@@ -107,22 +113,82 @@ def parse_rss(xml_text, subreddit, category):
         print(f"  WARNING: Could not parse r/{subreddit}: {e}")
     return posts
 
+# Reply-copy hygiene: words the model must never use. Mirrors the prompt rule
+# above and catches anything that slips through. Patterns use \b word
+# boundaries so we don't damage substrings ("seamless" must not eat "seamlessly"
+# wholesale — we replace both via the explicit forms).
+_FORBIDDEN_REPLACEMENTS = {
+    r"\brevolutionary\b":       "meaningful",
+    r"\bseamlessly\b":           "smoothly",
+    r"\bseamless\b":             "smooth",
+    r"\bintuitively\b":          "clearly",
+    r"\bintuitive\b":            "clear",
+    r"\bgame-changing\b":        "useful",
+    r"\bgame-changer\b":         "real help",
+    r"\bgame changer\b":         "real help",
+    r"\bsimply\b":               "",
+    r"\bjust\b":                 "",
+    r"\bProgressive Web App\b":  "app",
+    r"\bPWA\b":                  "app",
+}
+
+def scrub_forbidden_words(text):
+    """Replace any forbidden words in the reply copy. Returns the cleaned
+    string with double-spaces collapsed."""
+    if not text:
+        return text
+    for pat, sub in _FORBIDDEN_REPLACEMENTS.items():
+        text = re.sub(pat, sub, text, flags=re.IGNORECASE)
+    text = re.sub(r" {2,}", " ", text)
+    # also tidy up " ," and " ." left behind by deletions
+    text = re.sub(r"\s+([,.;:!?])", r"\1", text)
+    return text.strip()
+
+
+def _parse_signal_json(raw_text):
+    """Strip code fences and parse. Raises json.JSONDecodeError on failure."""
+    clean = raw_text.replace("```json", "").replace("```", "").strip()
+    return json.loads(clean)
+
+
+RETRY_SUFFIX = (
+    "\n\nCRITICAL OUTPUT REQUIREMENT — your previous response was not valid JSON. "
+    "Return ONLY a single JSON array. No prose before or after. No code fences. "
+    "No commentary. If there are no qualifying signals, return exactly: []"
+)
+
 def analyze_signals(posts):
+    """Analyze a batch of posts. Tries once, retries once with a stricter
+    prompt on JSON parse failure, returns [] if both attempts fail."""
     if not posts:
         return []
     posts_text = json.dumps(posts, indent=2)
-    message = client.messages.create(
-        model="claude-haiku-4-5",
-        max_tokens=4000,
-        messages=[{"role": "user", "content": f"{SIGNAL_PROMPT}\n\nPosts:\n{posts_text}"}]
-    )
-    raw = message.content[0].text.strip()
+    base_prompt = f"{SIGNAL_PROMPT}\n\nPosts:\n{posts_text}"
+
+    def call(prompt_text):
+        message = client.messages.create(
+            model="claude-haiku-4-5",
+            max_tokens=4000,
+            messages=[{"role": "user", "content": prompt_text}],
+        )
+        return message.content[0].text.strip()
+
     try:
-        clean = raw.replace("```json", "").replace("```", "").strip()
-        return json.loads(clean)
-    except Exception as e:
-        print(f"  WARNING: Could not parse response: {e}")
-        return []
+        signals = _parse_signal_json(call(base_prompt))
+    except Exception as e1:
+        print(f"  WARNING: first parse failed ({e1}); retrying with stricter prompt...")
+        try:
+            signals = _parse_signal_json(call(base_prompt + RETRY_SUFFIX))
+            print(f"  Retry parse succeeded — recovered {len(signals)} signal(s).")
+        except Exception as e2:
+            print(f"  WARNING: retry parse also failed ({e2}); skipping batch.")
+            return []
+
+    # Belt-and-suspenders: scrub forbidden words from every reply.
+    for s in signals:
+        if isinstance(s, dict) and "suggested_response" in s:
+            s["suggested_response"] = scrub_forbidden_words(s["suggested_response"])
+    return signals
 
 def save_report(signals, date_str):
     path = f"{SIGNALS_DIR}/signals-{date_str}.md"
