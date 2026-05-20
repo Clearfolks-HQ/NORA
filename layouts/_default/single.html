@@ -1,0 +1,58 @@
+{{ define "title" }}{{ .Title }} — Clearfolks Blog{{ end }}
+
+{{ define "main" }}
+<article class="post" itemscope itemtype="https://schema.org/Article">
+
+  <header class="post-header">
+    <div class="post-meta">
+      {{/* Breadcrumb */}}
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a href="{{ .Site.Params.blog_url }}/">Blog</a>
+        <span aria-hidden="true"> › </span>
+        {{ range .Params.clusters }}
+          {{ $clusterKey := . }}
+          {{ with index $.Site.Params.clusters $clusterKey }}
+          <a href="{{ $.Site.Params.blog_url }}/{{ $clusterKey }}/">{{ .label }}</a>
+          {{ end }}
+        {{ end }}
+      </nav>
+      <time datetime="{{ .Date.Format "2006-01-02" }}" itemprop="datePublished">
+        {{ .Date.Format "January 2, 2006" }}
+      </time>
+    </div>
+
+    <h1 itemprop="headline">{{ .Title }}</h1>
+
+    {{ with .Description }}
+    <p class="post-deck" itemprop="description">{{ . }}</p>
+    {{ end }}
+  </header>
+
+  {{/* ── Table of Contents ────────────────────────────────────────────── */}}
+  {{ if and .Params.toc (gt (len .TableOfContents) 100) }}
+  <nav class="toc" aria-label="Table of contents">
+    <p class="toc-label">In this article</p>
+    {{ .TableOfContents }}
+  </nav>
+  {{ end }}
+
+  {{/* ── Body ───────────────────────────────────────────────────────────── */}}
+  <div class="post-body" itemprop="articleBody">
+    {{ .Content }}
+  </div>
+
+  {{/* ── Etsy CTA ────────────────────────────────────────────────────────── */}}
+  {{ partial "etsy-cta.html" . }}
+
+  {{/* ── FAQ structured data block (rendered from frontmatter) ──────────── */}}
+  {{ partial "faq-block.html" . }}
+
+  {{/* ── Related posts in same cluster ────────────────────────────────── */}}
+  {{ partial "related-posts.html" . }}
+
+  <footer class="post-footer">
+    <p class="brand-close">{{ .Site.Params.brand_close }}</p>
+  </footer>
+
+</article>
+{{ end }}

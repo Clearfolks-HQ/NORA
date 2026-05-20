@@ -1,0 +1,115 @@
+{{/* schema.html — JSON-LD structured data for every page type
+     Generates: Organization (all pages), Article (single posts), FAQPage (if faqs in frontmatter),
+     BreadcrumbList (single posts), WebSite (home)
+*/}}
+
+{{/* ── Organization (all pages) ─────────────────────────────────────── */}}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Clearfolks",
+  "url": "{{ .Site.Params.site_url }}",
+  "logo": "{{ .Site.Params.site_url }}/blog/img/logo.png",
+  "sameAs": [
+    "https://www.etsy.com/shop/Clearfolk",
+    "https://www.pinterest.com/clearfolks"
+  ]
+}
+</script>
+
+{{ if .IsHome }}
+{{/* ── WebSite + Sitelinks Searchbox ────────────────────────────────── */}}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Clearfolks Blog",
+  "url": "{{ .Permalink }}",
+  "description": "{{ .Site.Params.description }}"
+}
+</script>
+{{ end }}
+
+{{ if .IsPage }}
+{{/* ── Article ─────────────────────────────────────────────────────────── */}}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": {{ .Title | jsonify }},
+  "description": {{ .Description | jsonify }},
+  "datePublished": "{{ .Date.Format "2006-01-02T15:04:05Z07:00" }}",
+  "dateModified": "{{ .Lastmod.Format "2006-01-02T15:04:05Z07:00" }}",
+  "author": {
+    "@type": "Organization",
+    "name": "Clearfolks",
+    "url": "{{ .Site.Params.site_url }}"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Clearfolks",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "{{ .Site.Params.site_url }}/blog/img/logo.png"
+    }
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "{{ .Permalink }}"
+  }{{ with .Params.og_image }},
+  "image": "{{ . }}"{{ end }}
+}
+</script>
+
+{{/* ── BreadcrumbList ─────────────────────────────────────────────────── */}}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Blog",
+      "item": "{{ .Site.Params.blog_url }}/"
+    }{{ range $i, $cluster := .Params.clusters }},
+    {
+      "@type": "ListItem",
+      "position": {{ add $i 2 }},
+      "name": "{{ with index $.Site.Params.clusters $cluster }}{{ .label }}{{ else }}{{ $cluster }}{{ end }}",
+      "item": "{{ $.Site.Params.blog_url }}/{{ $cluster }}/"
+    }{{ end }},
+    {
+      "@type": "ListItem",
+      "position": {{ add (len .Params.clusters) 2 }},
+      "name": {{ .Title | jsonify }},
+      "item": "{{ .Permalink }}"
+    }
+  ]
+}
+</script>
+
+{{/* ── FAQPage — only if faqs array exists in frontmatter ─────────────── */}}
+{{ with .Params.faqs }}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {{ range $i, $faq := . }}{{ if $i }},{{ end }}
+    {
+      "@type": "Question",
+      "name": {{ $faq.q | jsonify }},
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": {{ $faq.a | jsonify }}
+      }
+    }
+    {{ end }}
+  ]
+}
+</script>
+{{ end }}
+
+{{ end }}{{/* end .IsPage */}}

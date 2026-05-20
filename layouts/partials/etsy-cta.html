@@ -1,0 +1,44 @@
+{{/* etsy-cta.html
+     Renders a warm, non-salesy product callout.
+     Reads .Params.product (set by Sofia from Echo's "Product:" tag).
+     Falls back gracefully if no product is set.
+*/}}
+
+{{ $product := .Params.product }}
+{{ $etsy_url := "" }}
+{{ $app_url  := "" }}
+
+{{ with $product }}
+  {{ $etsy_url = index $.Site.Params.products . }}
+{{ end }}
+
+{{ with .Params.clusters }}
+  {{ $cluster := index . 0 }}
+  {{ with index $.Site.Params.clusters $cluster }}
+    {{ $app_url = .app }}
+  {{ end }}
+{{ end }}
+
+{{ if or $etsy_url $app_url }}
+<aside class="etsy-cta" aria-label="Related NORA tool">
+  <div class="etsy-cta-inner">
+    <p class="etsy-cta-eyebrow">The tool for this</p>
+    {{ with $product }}
+    <p class="etsy-cta-name">NORA {{ . }}</p>
+    {{ end }}
+    <p class="etsy-cta-pitch">One payment, lifetime access, works offline, household sharing included. No subscription, no login walls.</p>
+    <div class="etsy-cta-actions">
+      {{ with $etsy_url }}
+      <a href="{{ . }}" class="btn-primary" target="_blank" rel="noopener">
+        Get it on Etsy — $24.99
+      </a>
+      {{ end }}
+      {{ with $app_url }}
+      <a href="{{ . }}" class="btn-secondary" target="_blank" rel="noopener">
+        Preview the app
+      </a>
+      {{ end }}
+    </div>
+  </div>
+</aside>
+{{ end }}

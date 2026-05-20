@@ -1,0 +1,53 @@
+{{ define "main" }}
+<div class="list-page">
+
+  <header class="list-header">
+    {{ if .IsHome }}
+      <h1>Practical guides for life's complicated moments</h1>
+      <p class="list-deck">Real answers to real problems — from caregiving to homeschooling, moving to meal planning. No hype, no fluff.</p>
+
+      {{/* Cluster navigation */}}
+      <nav class="cluster-nav" aria-label="Topics">
+        {{ range $key, $val := .Site.Params.clusters }}
+        <a href="{{ $.Site.Params.blog_url }}/{{ $key }}/" class="cluster-pill">{{ $val.label }}</a>
+        {{ end }}
+      </nav>
+    {{ else }}
+      <p class="list-eyebrow">
+        <a href="{{ .Site.Params.blog_url }}/">← All topics</a>
+      </p>
+      <h1>{{ .Title }}</h1>
+      {{ with .Description }}<p class="list-deck">{{ . }}</p>{{ end }}
+    {{ end }}
+  </header>
+
+  {{/* ── Post grid ───────────────────────────────────────────────────────── */}}
+  <div class="post-grid">
+    {{ $pages := .Pages }}
+    {{ if .IsHome }}
+      {{ $pages = .Site.RegularPages }}
+    {{ end }}
+    {{ range $pages.ByDate.Reverse }}
+    <article class="post-card">
+      <div class="post-card-meta">
+        <time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "Jan 2, 2006" }}</time>
+        {{ range .Params.clusters }}
+          {{ $k := . }}
+          {{ with index $.Site.Params.clusters $k }}
+          <span class="post-card-cluster">{{ .label }}</span>
+          {{ end }}
+        {{ end }}
+      </div>
+      <h2 class="post-card-title">
+        <a href="{{ .Permalink }}">{{ .Title }}</a>
+      </h2>
+      {{ with .Description }}
+      <p class="post-card-desc">{{ . }}</p>
+      {{ end }}
+      <a href="{{ .Permalink }}" class="post-card-read">Read article →</a>
+    </article>
+    {{ end }}
+  </div>
+
+</div>
+{{ end }}

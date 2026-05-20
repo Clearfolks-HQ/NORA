@@ -1,0 +1,19 @@
+{{/* faq-block.html
+     Renders a visible FAQ section from the .Params.faqs array.
+     Sofia populates this from Echo's section list + takeaway.
+     Schema is already handled in schema.html — this is just the visible HTML.
+*/}}
+
+{{ with .Params.faqs }}
+<section class="faq-block" aria-labelledby="faq-heading">
+  <h2 id="faq-heading">Frequently asked questions</h2>
+  <dl class="faq-list">
+    {{ range . }}
+    <div class="faq-item">
+      <dt class="faq-q">{{ .q }}</dt>
+      <dd class="faq-a">{{ .a }}</dd>
+    </div>
+    {{ end }}
+  </dl>
+</section>
+{{ end }}

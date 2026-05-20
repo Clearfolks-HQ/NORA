@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ block "title" . }}{{ .Title }} — Clearfolks Blog{{ end }}</title>
+
+  {{/* ── Meta description ─────────────────────────────────────────────── */}}
+  {{ $desc := .Description | default .Summary | default .Site.Params.description }}
+  <meta name="description" content="{{ $desc | truncate 160 | plainify }}">
+
+  {{/* ── Canonical URL ──────────────────────────────────────────────────── */}}
+  <link rel="canonical" href="{{ .Permalink }}">
+
+  {{/* ── Open Graph ─────────────────────────────────────────────────────── */}}
+  <meta property="og:type"        content="{{ if .IsPage }}article{{ else }}website{{ end }}">
+  <meta property="og:title"       content="{{ .Title }}">
+  <meta property="og:description" content="{{ $desc | truncate 200 | plainify }}">
+  <meta property="og:url"         content="{{ .Permalink }}">
+  <meta property="og:site_name"   content="Clearfolks Blog">
+  <meta property="og:image"       content="{{ .Params.og_image | default .Site.Params.og_image }}">
+  {{ if .IsPage }}
+  <meta property="article:published_time" content="{{ .Date.Format "2006-01-02T15:04:05Z07:00" }}">
+  <meta property="article:modified_time"  content="{{ .Lastmod.Format "2006-01-02T15:04:05Z07:00" }}">
+  {{ end }}
+
+  {{/* ── Twitter Card ───────────────────────────────────────────────────── */}}
+  <meta name="twitter:card"        content="summary_large_image">
+  <meta name="twitter:title"       content="{{ .Title }}">
+  <meta name="twitter:description" content="{{ $desc | truncate 200 | plainify }}">
+  <meta name="twitter:image"       content="{{ .Params.og_image | default .Site.Params.og_image }}">
+
+  {{/* ── GSC & Bing verification ─────────────────────────────────────── */}}
+  {{ with .Site.Params.gsc_token }}
+  <meta name="google-site-verification" content="{{ . }}">
+  {{ end }}
+  {{ with .Site.Params.bing_token }}
+  <meta name="msvalidate.01" content="{{ . }}">
+  {{ end }}
+
+  {{/* ── JSON-LD structured data ────────────────────────────────────────── */}}
+  {{ partial "schema.html" . }}
+
+  {{/* ── Stylesheet ─────────────────────────────────────────────────────── */}}
+  <link rel="stylesheet" href="{{ "css/blog.css" | relURL }}">
+
+  {{/* ── GA4 (async, non-blocking) ─────────────────────────────────────── */}}
+  {{ with .Site.Params.ga4_id }}{{ if ne . "G-XXXXXXXXXX" }}
+  <script async src="https://www.googletagmanager.com/gtag/js?id={{ . }}"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', '{{ . }}', { page_path: window.location.pathname });
+  </script>
+  {{ end }}{{ end }}
+
+  <link rel="icon" href="{{ "img/favicon.ico" | relURL }}" type="image/x-icon">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+{{ partial "header.html" . }}
+
+<main id="main-content">
+  {{ block "main" . }}{{ end }}
+</main>
+
+{{ partial "footer.html" . }}
+
+</body>
+</html>

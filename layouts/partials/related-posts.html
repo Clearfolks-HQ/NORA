@@ -1,0 +1,40 @@
+{{/* related-posts.html — shows up to 3 posts from the same cluster */}}
+
+{{ $currentPage := . }}
+{{ $related := slice }}
+
+{{ range .Site.RegularPages }}
+  {{ if ne .Permalink $currentPage.Permalink }}
+    {{ range .Params.clusters }}
+      {{ if in $currentPage.Params.clusters . }}
+        {{ $related = $related | append $currentPage.Site.GetPage $.Permalink }}
+      {{ end }}
+    {{ end }}
+  {{ end }}
+{{ end }}
+
+{{ $related = first 3 .Site.RegularPages }}
+
+{{ if gt (len .Site.RegularPages) 1 }}
+{{ $others := slice }}
+{{ range .Site.RegularPages }}
+  {{ if ne .Permalink $currentPage.Permalink }}
+    {{ $others = $others | append . }}
+  {{ end }}
+{{ end }}
+{{ $related = first 3 $others }}
+
+{{ if $related }}
+<section class="related-posts" aria-labelledby="related-heading">
+  <h2 id="related-heading">More on this topic</h2>
+  <div class="related-grid">
+    {{ range $related }}
+    <article class="related-card">
+      <h3><a href="{{ .Permalink }}">{{ .Title }}</a></h3>
+      {{ with .Description }}<p>{{ . | truncate 120 }}</p>{{ end }}
+    </article>
+    {{ end }}
+  </div>
+</section>
+{{ end }}
+{{ end }}

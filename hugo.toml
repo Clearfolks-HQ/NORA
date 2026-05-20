@@ -1,0 +1,88 @@
+baseURL = "https://blog.clearfolks.com/"
+languageCode = "en-us"
+title = "Clearfolks Blog — Practical tools for life's complicated moments"
+# theme = ""  # using layouts directly
+
+# Hugo built-ins we want
+enableRobotsTXT = true
+enableGitInfo = false
+enableEmoji = false
+
+# Sitemap
+[sitemap]
+  changefreq = "daily"
+  priority = 0.8
+  filename = "sitemap.xml"
+
+# Outputs — add JSON index for search later
+[outputs]
+  home = ["HTML", "RSS"]
+  section = ["HTML", "RSS"]
+  page = ["HTML"]
+
+# Taxonomy — cluster is the 12 product lines
+[taxonomies]
+  cluster = "clusters"
+  tag = "tags"
+
+# Markup
+[markup]
+  [markup.goldmark.renderer]
+    unsafe = false
+  [markup.tableOfContents]
+    startLevel = 2
+    endLevel = 3
+  [markup.highlight]
+    noClasses = false
+
+# Params — global brand vars used in partials
+[params]
+  description   = "Practical organizer tools for caregivers, parents, and households. Made by Clearfolk."
+  brand_close   = "Made by Clearfolk · Practical tools for life's complicated moments · clearfolks.com"
+  etsy_shop     = "https://www.etsy.com/shop/Clearfolk"
+  site_url      = "https://clearfolks.com"
+  blog_url      = "https://blog.clearfolks.com"
+  og_image      = "https://clearfolks.com/blog/img/og-default.png"
+
+  # GA4 — replace G-XXXXXXXXXX with your real Measurement ID after you
+  # create the property in Google Analytics (step in README)
+  ga4_id        = "G-4GCNQJJ73M"
+
+  # Google Search Console verification token
+  # replace after you verify in GSC (step in README)
+  gsc_token     = ""
+
+  # Bing Webmaster Tools verification token
+  # replace after you verify in Bing (step in README)
+  bing_token    = ""
+
+  # Product map — used by the etsy-cta partial to look up listing URLs
+  # Keyed by product code matching Echo's "Product:" footer tag
+  [params.products]
+    "Caregiver Command Center"      = "https://www.etsy.com/listing/4490826785"
+    "Medication Tracker"            = "https://www.etsy.com/listing/4490844238"
+    "IEP Parent Binder"             = "https://www.etsy.com/listing/4490835131"
+    "IEP Meeting Prep Kit"          = "https://www.etsy.com/listing/4490828563"
+    "Etsy Seller Business System"   = "https://www.etsy.com/listing/4490841158"
+    "Wedding Planning App"          = "https://www.etsy.com/listing/4494281970"
+    "Baby Tracker and Postpartum App" = "https://www.etsy.com/listing/4508101690"
+    "Homeschool Planner App"        = "https://www.etsy.com/listing/4494273966"
+    "Pet Care Organizer"            = ""
+    "Meal Planner and Grocery"      = ""
+    "Moving Day Organizer"          = ""
+    "Travel Planner"                = ""
+
+  # Cluster → display name + app URL map
+  [params.clusters]
+    caregiver     = { label = "Caregiver",        app = "https://app.clearfolks.com/caregiver" }
+    medication    = { label = "Medication",        app = "https://app.clearfolks.com/cf-bqs4r8e9" }
+    iep           = { label = "IEP",               app = "https://app.clearfolks.com/cf-9x25jxsc" }
+    "etsy-seller" = { label = "Etsy Seller",       app = "https://app.clearfolks.com/cf-63nja3ht" }
+    wedding       = { label = "Wedding",           app = "https://app.clearfolks.com/cf-2465sd9i" }
+    baby          = { label = "Baby & Postpartum", app = "https://app.clearfolks.com/cf-q1d4697v" }
+    homeschool    = { label = "Homeschool",        app = "https://app.clearfolks.com/cf-ta6u0cjs" }
+    "pet-care"    = { label = "Pet Care",          app = "https://app.clearfolks.com/cf-eog81o2l" }
+    "meal-planning" = { label = "Meal Planning",   app = "https://app.clearfolks.com/cf-ex31190f" }
+    moving        = { label = "Moving",            app = "https://app.clearfolks.com/cf-ujpf3au3" }
+    travel        = { label = "Travel",            app = "https://app.clearfolks.com/cf-6juuqoo9" }
+    generic       = { label = "Household",         app = "https://clearfolks.com" }
