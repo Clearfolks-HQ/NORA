@@ -69,34 +69,7 @@ FORBIDDEN_REPLACEMENTS = {
     "progressive web app": "app",
 }
 
-# Product → Hugo cluster slug.  Mirrors sofia_blog.PRODUCT_TO_CLUSTER plus
-# the looser variants that show up in Echo's pin drafts.
-PRODUCT_TO_CLUSTER = {
-    "Caregiver Command Center":          "caregiver",
-    "Caregiver Organizer App":           "caregiver",
-    "Medication Tracker":                "medication",
-    "Medication Tracker App":            "medication",
-    "IEP Parent Binder":                 "iep",
-    "IEP Parent Binder App":             "iep",
-    "IEP Meeting Prep Kit":              "iep",
-    "Etsy Seller Business System":       "etsy-seller",
-    "Etsy Profit Tracker":               "etsy-seller",
-    "Wedding Planning App":              "wedding",
-    "Baby Tracker and Postpartum App":   "baby",
-    "Baby Tracker & Postpartum App":     "baby",
-    "Baby Tracker":                      "baby",
-    "Homeschool Planner App":            "homeschool",
-    "Pet Care Organizer":                "pet-care",
-    "Pet Care Organizer App":            "pet-care",
-    "Meal Planner and Grocery App":      "meal-planning",
-    "Meal Planner and Grocery":          "meal-planning",
-    "Meal Planner & Grocery App":        "meal-planning",
-    "Meal Planner":                      "meal-planning",
-    "Moving Day Organizer App":          "moving",
-    "Moving Day Organizer":              "moving",
-    "Travel Planner App":                "travel",
-    "Travel Planner":                    "travel",
-}
+from clusters import PRODUCT_TO_CLUSTER
 
 
 # ── Logging ────────────────────────────────────────────────────────────────

@@ -27,6 +27,8 @@ from datetime import datetime, date
 from pathlib import Path
 import anthropic
 
+from clusters import PRODUCT_TO_CLUSTER
+
 # ── Config ──────────────────────────────────────────────────────────────
 BASE          = Path("/root/clearfolks")
 DRAFTS_IN     = BASE / "drafts" / "blog"
@@ -36,24 +38,6 @@ REBUILD_SCRIPT= Path("/var/www/clearfolks-blog/site/../..") / "scripts" / "rebui
 # Actual rebuild script location after install:
 REBUILD_SCRIPT= Path("/root/clearfolks-blog-pass1/scripts/rebuild-blog.sh")  # fixed below
 LOG_FILE      = BASE / "logs" / "sofia_blog.log"
-
-# Cluster slug mapping — matches Echo's "Product:" tag to Hugo cluster slug
-PRODUCT_TO_CLUSTER = {
-    "Caregiver Command Center":       "caregiver",
-    "Medication Tracker":             "medication",
-    "IEP Parent Binder":              "iep",
-    "IEP Meeting Prep Kit":           "iep",
-    "Etsy Seller Business System":    "etsy-seller",
-    "Wedding Planning App":           "wedding",
-    "Baby Tracker and Postpartum App":"baby",
-    "Baby Tracker & Postpartum App":  "baby",
-    "Homeschool Planner App":         "homeschool",
-    "Pet Care Organizer":             "pet-care",
-    "Meal Planner and Grocery":       "meal-planning",
-    "Meal Planner & Grocery":         "meal-planning",
-    "Moving Day Organizer":           "moving",
-    "Travel Planner":                 "travel",
-}
 
 FORBIDDEN = [
     "revolutionary", "seamless", "intuitive", "game-changing",

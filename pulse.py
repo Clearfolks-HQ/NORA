@@ -12,10 +12,13 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 import anthropic
 
+from clusters import product_to_cluster
+
 client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 SUBREDDITS_FILE = "/root/clearfolks/subreddits.json"
 SIGNALS_DIR = "/root/clearfolks/signals"
 LOGS_DIR = "/root/clearfolks/logs"
+BLOG_BASE_URL = "https://blog.clearfolks.com"
 
 SIGNAL_PROMPT = """You are Pulse, a buying signal analyst for Clearfolks Templates — an Etsy store selling PWA digital organizer apps.
 
@@ -140,7 +143,14 @@ def save_report(signals, date_str):
     print(f"Report saved: {path}")
     return path
 
+DRY_RUN = "--dry-run" in sys.argv
+
 def send_telegram_msg(token, chat_id, text):
+    if DRY_RUN:
+        print("\n----- TELEGRAM MESSAGE -----")
+        print(text)
+        print("----- END MESSAGE -----\n")
+        return
     import urllib.request, urllib.parse
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     data = urllib.parse.urlencode({
@@ -154,35 +164,24 @@ def send_telegram_msg(token, chat_id, text):
     except Exception as e:
         print(f"Telegram error: {e}")
 
-def send_telegram_msg(token, chat_id, text):
-    import urllib.request, urllib.parse
-    url = f"https://api.telegram.org/bot{token}/sendMessage"
-    data = urllib.parse.urlencode({
-        "chat_id": chat_id,
-        "text": text,
-        "parse_mode": "Markdown",
-        "disable_web_page_preview": "true"
-    }).encode()
-    try:
-        urllib.request.urlopen(urllib.request.Request(url, data=data), timeout=15)
-    except Exception as e:
-        print(f"Telegram error: {e}")
+def build_reply_with_blog(suggested_response, cluster):
+    """Append a natural blog-post mention to the Reddit reply copy.
+    No-op if cluster is unknown or the link is already present."""
+    reply = (suggested_response or "").rstrip()
+    if not cluster:
+        return reply
+    blog_path = f"blog.clearfolks.com/{cluster}/"
+    if blog_path in reply:
+        return reply
+    return f"{reply}\n\nI wrote a full guide on this: {blog_path}"
 
 def send_daily_push(signals):
     if not signals:
         return
-    token = os.environ.get("TELEGRAM_BOT_TOKEN")
-    chat_id = os.environ.get("TELEGRAM_CHAT_ID")
-    if not token or not chat_id:
+    token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
+    if not DRY_RUN and (not token or not chat_id):
         return
-
-    import json as _json
-    try:
-        with open("/root/clearfolks/products.json") as _f:
-            _pdata = _json.load(_f)
-        etsy_map = {p["name"]: p.get("etsy_url","") for p in _pdata["products"]}
-    except:
-        etsy_map = {}
 
     top = signals[:3]
     date_str = datetime.now().strftime("%b %d")
@@ -195,8 +194,10 @@ def send_daily_push(signals):
 
     for i, s in enumerate(top, 1):
         product_name = s.get("product_match","").replace("Upcoming: ","").strip()
-        etsy_url = etsy_map.get(product_name, "")
-        etsy_line = f"\n*Buy on Etsy:*\n{etsy_url}" if etsy_url else "\n_Etsy listing coming soon_"
+        cluster = product_to_cluster(product_name)
+        blog_url = f"{BLOG_BASE_URL}/{cluster}/" if cluster else ""
+        reply = build_reply_with_blog(s.get("suggested_response",""), cluster)
+        blog_line = f"\n\n*Blog post:*\n{blog_url}" if blog_url else ""
 
         text = (
             f"*Signal {i}/{len(top)} — Score {s.get('score','?')}/10*\n"
@@ -204,9 +205,9 @@ def send_daily_push(signals):
             f"*Post:* {s.get('post_title','')}\n"
             f"*Pain:* {s.get('pain_point','')}\n"
             f"*Product:* {product_name}\n\n"
-            f"*Reply to copy:*\n{s.get('suggested_response','')}\n\n"
+            f"*Reply to copy:*\n{reply}\n\n"
             f"*Reddit link:*\n{s.get('post_url','')}"
-            f"{etsy_line}"
+            f"{blog_line}"
         )
         if len(text) > 4000:
             text = text[:3900] + "\n_...truncated_"
