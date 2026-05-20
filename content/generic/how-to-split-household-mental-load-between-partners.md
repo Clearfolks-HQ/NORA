@@ -3,7 +3,7 @@ title: "How to Split Household Mental Load Between Partners"
 description: "Stop one parent from carrying invisible household labor. Practical ways to share mental load evenly with your partner."
 date: 2026-05-20
 clusters: ["generic"]
-product: "Clearfolks"
+product: "Meal Planner and Grocery"
 toc: true
 source_reddit: "r/Parenting"
 faqs:

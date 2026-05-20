@@ -3,7 +3,7 @@ title: "How to Stop Fast Food Impulses and Stick to Your $150 Weekly Grocery Bud
 description: "Build a meal planning system that eliminates decision fatigue and prevents expensive fast food detours from derailing your family food budget."
 date: 2026-05-20
 clusters: ["generic"]
-product: "Meal Planner and Grocery App"
+product: "Meal Planner and Grocery"
 toc: true
 source_reddit: "r/budgetfood"
 faqs:

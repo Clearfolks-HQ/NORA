@@ -3,7 +3,7 @@ title: "Why Your Planner Failed (And What Works Instead)"
 description: "Your planner didn't fail because you're disorganized. It failed because it was too rigid. Here's what actually sticks."
 date: 2026-05-20
 clusters: ["generic"]
-product: "Clearfolks"
+product: "Meal Planner and Grocery"
 toc: true
 source_reddit: "r/declutter"
 faqs:
