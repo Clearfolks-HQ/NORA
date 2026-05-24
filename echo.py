@@ -41,13 +41,14 @@ Write a Pinterest pin draft for the signal below.
 
 RULES:
 - Title: 6-10 words, practical and specific, no hype
-- Description: 2-3 sentences max. Lead with the pain, offer the solution.
+- Description: 2-3 sentences max. Lead with the pain, then the practical fix.
 - Call to action: one line, direct
 - Hashtags: 8-10 relevant hashtags
-- Forbidden words: revolutionary, seamless, intuitive, game-changing, simply, just, solution (alone)
+- Forbidden words: revolutionary, seamless, intuitive, game-changing, simply, just, solution (alone), furthermore, additionally, moreover
+- Forbidden punctuation: em dash "—", en dash "–", semicolon ";". Use a period or comma instead.
 - Required mentions: at least one of: offline capability, one payment lifetime access, household sharing
 - Use exact product name from PRODUCT MATCH — never invent a new name
-- Tone: warm, practical, like advice from a friend who found a good tool
+- Tone: a friend who actually went through this and found a thing that helped. Short sentences. Plain words. Not "elevate your wedding planning experience" — more "wedding stuff in one place so you stop losing the venue PDF".
 
 SIGNAL:
 {SIGNAL}
@@ -67,10 +68,12 @@ RULES:
 - Target reader: the exact person in the signal
 - Headline: specific, problem-focused, no clickbait
 - 5-7 sections with clear subheadings
-- Each section: 1-2 sentence description of what it covers
+- Each section: 1-2 sentence description of what it covers, written plainly
 - Natural product mention in section 3 or 4 — not the focus, just one option among practical advice
 - Use exact product name — never invent a new name
-- Forbidden words: revolutionary, seamless, game-changing, simply, just
+- Forbidden words: revolutionary, seamless, game-changing, simply, just, furthermore, additionally, moreover, "it is worth noting"
+- Forbidden punctuation in section briefs: em dash "—", semicolon ";". (The output template below uses "—" only as a delimiter between section title and brief; do not use it inside the brief text.)
+- Plain language, short sentences. Section briefs should sound like a smart friend explaining the problem, not a SEO content mill.
 - Required: mention offline capability OR one payment lifetime access OR household sharing
 - End with a practical takeaway section
 - Estimated read time: 4-6 minutes

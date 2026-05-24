@@ -42,9 +42,9 @@ DRAFTS_DIR        = BASE / "drafts" / "pinterest"
 PROCESSED_DIR     = DRAFTS_DIR / "processed"
 IMAGES_DIR        = BASE / "static" / "pin-images"
 BOARDS_FILE       = BASE / "pinterest_boards.json"
+PRODUCTS_FILE     = BASE / "products.json"
 LOG_FILE          = BASE / "logs" / "pinterest.log"
 
-BLOG_BASE_URL     = "https://blog.clearfolks.com"
 BUFFER_API_URL    = "https://api.buffer.com/"  # GraphQL, OIDC bearer token
 IMAGES_BASE_URL   = "https://blog.clearfolks.com/pin-images"  # served via Hugo static
 BRAND_CLOSE       = "Made by Clearfolk · clearfolks.com"
@@ -92,6 +92,7 @@ DRAFT_FIELDS = {
 }
 PRODUCT_FOOTER = re.compile(r"\*Generated:.*?\|\s*Product:\s*(.+?)\*", re.S)
 SOURCE_HEADER  = re.compile(r"^\*\*Source:\*\*\s*(\S+)", re.M)
+PAIN_HEADER    = re.compile(r"^\*\*Pain point:\*\*\s*(.+)$", re.M)
 
 
 def parse_draft(path: Path) -> dict | None:
@@ -109,9 +110,35 @@ def parse_draft(path: Path) -> dict | None:
     m = SOURCE_HEADER.search(raw)
     out["source"] = m.group(1).strip() if m else ""
 
+    m = PAIN_HEADER.search(raw)
+    out["pain_point"] = m.group(1).strip() if m else ""
+
     if not out["title"] or not out["description"]:
         return None
     return out
+
+
+def build_alt_text(product: str, pain_point: str) -> str:
+    """Pinterest pin alt text. Format:
+    '<product name> for <pain summary> - works offline, one payment, lifetime access'
+    Lowercase, punctuation stripped, no leading articles. Capped near Pinterest's
+    500-char alt-text limit."""
+    name = (product or "").strip().lower().removesuffix(" app").strip()
+    pain = (pain_point or "").strip().lower()
+    # strip trailing period and collapse internal whitespace
+    pain = re.sub(r"\s+", " ", pain).rstrip(". ")
+    # drop common leading filler so the text reads as a benefit phrase
+    pain = re.sub(r"^(a|an|the|someone|people|users?)\s+(who\s+is\s+|who\s+|that\s+(is\s+)?)?", "", pain)
+    tail = "works offline, one payment, lifetime access"
+    if not name and not pain:
+        return tail
+    if name and pain:
+        text = f"{name} for {pain} - {tail}"
+    elif name:
+        text = f"{name} - {tail}"
+    else:
+        text = f"{pain} - {tail}"
+    return text[:500]
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────
@@ -140,17 +167,20 @@ def strip_forbidden(text: str) -> tuple[str, list[str]]:
 PINTEREST_MAX_CHARS = 500
 
 
-def build_post_text(draft: dict, blog_url: str, max_chars: int = PINTEREST_MAX_CHARS) -> str:
-    """Assemble the Pinterest caption — description + CTA + link + brand close + hashtags.
-    Pinterest rejects descriptions over 500 chars; if the full caption exceeds the cap,
-    the description body is shortened (with an ellipsis) while everything else is kept."""
+def build_post_text(draft: dict, etsy_url: str, max_chars: int = PINTEREST_MAX_CHARS) -> str:
+    """Assemble the Pinterest caption — description + CTA + Etsy link + brand close + hashtags.
+    The Etsy link is always the last content line before the brand close; no blog URL
+    is ever emitted. Pinterest rejects descriptions over 500 chars; if the full caption
+    exceeds the cap, the description body is shortened (with an ellipsis) while
+    everything else is kept."""
     def assemble(desc: str) -> str:
+        link_line = f"find it on etsy: {etsy_url}" if etsy_url else ""
         parts = [
             desc,
             "",
             draft["cta"],
             "",
-            f"Read the full guide → {blog_url}",
+            link_line,
             "",
             BRAND_CLOSE,
             "",
@@ -187,6 +217,46 @@ def load_boards_config() -> dict:
         return json.load(f)
 
 
+def _name_variants(name: str) -> list[str]:
+    """Yield every spelling variant we might see for a product name:
+    canonical, no-App suffix, '&' ↔ 'and' swap, all four combinations."""
+    base = name.removesuffix(" App").strip()
+    candidates = {name, base}
+    for n in list(candidates):
+        if "&" in n:
+            candidates.add(n.replace("&", "and"))
+        if " and " in n:
+            candidates.add(n.replace(" and ", " & "))
+    return [c for c in candidates if c]
+
+
+def load_product_etsy_urls() -> dict:
+    """Build product-name → etsy_url map from products.json with alias variants
+    so we match whatever the pin draft footer carries (canonical / no-App /
+    '&' vs 'and')."""
+    with open(PRODUCTS_FILE) as f:
+        data = json.load(f)
+    out: dict[str, str] = {}
+    for p in data.get("products", []):
+        url = p.get("etsy_url", "")
+        name = p.get("name", "")
+        if not url or not name:
+            continue
+        for variant in _name_variants(name):
+            out[variant] = url
+    return out
+
+
+def etsy_url_for(product: str, etsy_map: dict) -> str:
+    """Resolve a pin's product name to its Etsy listing URL."""
+    if not product:
+        return ""
+    for variant in _name_variants(product):
+        if variant in etsy_map:
+            return etsy_map[variant]
+    return ""
+
+
 # ── Buffer GraphQL API ─────────────────────────────────────────────────────
 CREATE_POST_MUTATION = """
 mutation CreatePost($input: CreatePostInput!) {
@@ -206,8 +276,13 @@ mutation CreatePost($input: CreatePostInput!) {
 
 def post_to_buffer(token: str, channel_id: str, board_service_id: str,
                    text: str, title: str, link: str, image_url: str,
-                   scheduled_at: datetime) -> tuple[bool, str]:
-    """Schedule a Pinterest pin via Buffer GraphQL.  Returns (ok, response_body)."""
+                   alt_text: str, scheduled_at: datetime) -> tuple[bool, str]:
+    """Schedule a Pinterest pin via Buffer GraphQL.  Returns (ok, response_body).
+
+    NOTE: Buffer's GraphQL schema (as of 2026-05-24) does not expose Pinterest
+    alt text on either ImageAssetInput or PinterestPostMetadataInput. We still
+    generate alt text locally so it can be added manually on Pinterest after
+    the pin publishes — see the Telegram summary."""
     due_at_utc = scheduled_at.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     variables = {
         "input": {
@@ -289,6 +364,7 @@ def run(dry_run: bool, limit: int | None = None) -> int:
     fallback_board = cfg.get("fallback_board", {})
     channel_id     = channel.get("id", "")
     buffer_token   = os.environ.get("BUFFER_TOKEN", "")
+    etsy_map       = load_product_etsy_urls()
 
     safe_mode = False
     if not dry_run and (not buffer_token or not channel_id):
@@ -310,8 +386,12 @@ def run(dry_run: bool, limit: int | None = None) -> int:
             continue
 
         cluster = PRODUCT_TO_CLUSTER.get(draft["product"], "generic")
-        slug    = slugify(draft["title"])
-        blog_url = f"{BLOG_BASE_URL}/{cluster}/{slug}/"
+        etsy_url = etsy_url_for(draft["product"], etsy_map)
+        if not etsy_url:
+            log(f"  ⚠ No etsy_url for product '{draft['product']}' — skipping.")
+            skipped.append({"file": draft_path.name, "status": "skipped:no_etsy_url",
+                            "product": draft["product"]})
+            continue
 
         image_path = IMAGES_DIR / f"{cluster}.png"
         image_url  = f"{IMAGES_BASE_URL}/{cluster}.png"
@@ -323,7 +403,8 @@ def run(dry_run: bool, limit: int | None = None) -> int:
         draft["description"], draft["cta"], draft["hashtags"] = clean_desc, clean_cta, clean_hash
         all_bad = sorted(set(bad_desc + bad_cta + bad_hash))
 
-        caption = build_post_text(draft, blog_url)
+        caption = build_post_text(draft, etsy_url)
+        alt_text = build_alt_text(draft["product"], draft.get("pain_point", ""))
         scheduled_at = next_slot(slot_index)
 
         board_meta       = boards.get(cluster, {})
@@ -343,7 +424,8 @@ def run(dry_run: bool, limit: int | None = None) -> int:
             "board_service_id": board_service_id,
             "used_fallback":    used_fallback,
             "title":            draft["title"],
-            "blog_url":         blog_url,
+            "etsy_url":         etsy_url,
+            "alt_text":         alt_text,
             "image_path":       str(image_path),
             "image_url":        image_url,
             "scheduled_at":     scheduled_at.isoformat(timespec="minutes"),
@@ -363,7 +445,8 @@ def run(dry_run: bool, limit: int | None = None) -> int:
             log(f"    product      : {draft['product']}")
             log(f"    board        : {board_name}  (board_service_id={board_service_id})")
             log(f"    title        : {draft['title']}")
-            log(f"    blog url     : {blog_url}")
+            log(f"    etsy url     : {etsy_url}")
+            log(f"    alt text     : {alt_text}")
             log(f"    image (file) : {image_path}  ({'exists' if image_path.exists() else 'MISSING'})")
             log(f"    image (url)  : {image_url}")
             log(f"    scheduled_at : {record['scheduled_at']}")
@@ -389,8 +472,9 @@ def run(dry_run: bool, limit: int | None = None) -> int:
             board_service_id=board_service_id,
             text=caption,
             title=draft["title"],
-            link=blog_url,
+            link=etsy_url,
             image_url=image_url,
+            alt_text=alt_text,
             scheduled_at=scheduled_at,
         )
         try:
@@ -430,7 +514,10 @@ def run(dry_run: bool, limit: int | None = None) -> int:
         for r in scheduled:
             fb = "  (fallback board)" if r.get("used_fallback") else ""
             lines.append(f"  • [{r['cluster']}] {r['title']}{fb}")
-            lines.append(f"     → {r['blog_url']}")
+            lines.append(f"     board: {r.get('board','?')}")
+            lines.append(f"     → {r['etsy_url']}")
+            if r.get("alt_text"):
+                lines.append(f"     alt (paste on Pinterest): {r['alt_text']}")
     if skipped:
         lines.append("")
         lines.append(f"⚠️ Skipped {len(skipped)}:")

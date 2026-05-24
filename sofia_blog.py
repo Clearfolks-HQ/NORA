@@ -23,6 +23,7 @@ Cron: 0 9 * * * /root/clearfolks/venv/bin/python /root/clearfolks/sofia_blog.py 
 """
 
 import os, re, json, shutil, subprocess, sys, glob
+import urllib.error, urllib.request
 from datetime import datetime, date
 from pathlib import Path
 import anthropic
@@ -42,6 +43,7 @@ LOG_FILE      = BASE / "logs" / "sofia_blog.log"
 FORBIDDEN = [
     "revolutionary", "seamless", "intuitive", "game-changing",
     "simply", "game changer", "PWA", "Progressive Web App",
+    "furthermore", "additionally", "moreover", "it is worth noting",
 ]
 
 BRAND_CLOSE = "Made by Clearfolk · Practical tools for life's complicated moments · clearfolks.com"
@@ -146,6 +148,8 @@ def generate_post(outline: dict) -> str:
 BRAND VOICE RULES (non-negotiable):
 - Warm but not saccharine. Practical but not cold.
 - Never use these words: {", ".join(FORBIDDEN)}
+- Never use em dashes "—" or semicolons ";" in body copy. Use periods or commas. (Headings and the YAML frontmatter are exempt.)
+- The opening paragraph reads like a real person typed it on their phone: short sentences, plain words, no "in this article" preamble, no "furthermore"/"additionally"/"it is worth noting". State the reader's situation in their language.
 - Where it fits naturally, mention: offline capability, one payment lifetime access, household sharing. Never force them.
 - No exclamation marks in body copy.
 - Short paragraphs. Real sentences. No bullet walls.
@@ -262,6 +266,28 @@ def rebuild_blog():
         log(f"Rebuild script not found at {rebuild} — skipping rebuild.")
 
 
+BLOG_BASE_URL = "https://blog.clearfolks.com"
+
+
+def verify_post_live(slug: str, timeout: int = 15) -> tuple[bool, str, str]:
+    """Fetch the post URL and return (ok, url, reason).
+
+    Returns ok=True only on HTTP 200. URL pattern is /{slug}/ — see Hugo
+    permalink config that flattens all clusters to root."""
+    url = f"{BLOG_BASE_URL}/{slug}/"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Sofia-Verifier/1.0"})
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            status = getattr(resp, "status", resp.getcode())
+            if status == 200:
+                return True, url, "200"
+            return False, url, f"HTTP {status}"
+    except urllib.error.HTTPError as e:
+        return False, url, f"HTTP {e.code}"
+    except Exception as e:
+        return False, url, f"{type(e).__name__}: {e}"
+
+
 def send_telegram(message: str):
     """Send a summary to @Cf_pwa_bot."""
     import urllib.request, urllib.parse
@@ -370,18 +396,34 @@ def process_outlines():
         log("Triggering Hugo rebuild...")
         rebuild_blog()
 
-    # Telegram summary
-    if published or errors:
+    # Verify every published post is live before telling Telegram
+    verified = []
+    failed_verify = []
+    for p in published:
+        ok, url, reason = verify_post_live(p["slug"])
+        if ok:
+            log(f"  ✓ Verified live: {url}")
+            verified.append({**p, "url": url})
+        else:
+            log(f"  ✗ Verify failed for {p['slug']}: {reason}")
+            failed_verify.append({**p, "url": url, "reason": reason})
+
+    # Telegram summary — only include URLs that responded 200
+    if verified or failed_verify or errors:
         lines = [f"📝 <b>Sofia Blog Report — {date.today().strftime('%b %d')}</b>\n"]
-        if published:
-            lines.append(f"✅ Published {len(published)} post(s):")
-            for p in published:
+        if verified:
+            lines.append(f"✅ Published {len(verified)} post(s):")
+            for p in verified:
                 lines.append(f"  • [{p['cluster']}] {p['title']}")
+                lines.append(f"    {p['url']}")
+        if failed_verify:
+            lines.append(f"\n🚨 {len(failed_verify)} post(s) failed to publish:")
+            for p in failed_verify:
+                lines.append(f"  • blog post failed to publish: {p['slug']} ({p['reason']})")
         if errors:
-            lines.append(f"\n⚠️ {len(errors)} error(s):")
+            lines.append(f"\n⚠️ {len(errors)} outline error(s):")
             for e in errors:
                 lines.append(f"  • {e}")
-        lines.append(f"\nclearfolks.com/blog")
         send_telegram("\n".join(lines))
 
 

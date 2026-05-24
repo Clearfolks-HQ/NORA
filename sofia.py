@@ -24,12 +24,14 @@ Write a complete, high-converting Etsy listing for the product below.
 
 ETSY LISTING RULES:
 - Title: 120-140 chars, front-load keywords, pipe-separated sections
-- Price positioning: significantly cheaper than competitors (BCRI, TechnoBridge, ICRI charge $150-400 for courses/tools — we charge a fraction)
 - Description: lead with the buyer's pain, not the product features
-- Use short paragraphs — Etsy buyers skim
-- Required mentions in description: offline capability, one payment lifetime access no subscription, household sharing
+- Use short paragraphs, Etsy buyers skim
+- Required mentions in description: offline capability, lifetime access no subscription, household sharing
+- Description must NOT mention, reference, or explain the price, cost, value, discount, or competitor pricing in any way. No dollar amounts. No "launch pricing". No "introductory". No "limited time". The Etsy price field is separate from the description.
 - 5 bullet points: each starts with a benefit, ends with a feature
+- Bullets must also avoid any price or cost language
 - 13 tags: mix of long-tail and short keywords
+- Tags must not include price-related terms like "cheap", "affordable", "discount"
 - Forbidden words: revolutionary, seamless, intuitive, game-changing, simply, just, solution (alone), PWA, Progressive Web App
 - Brand close: "Made by Clearfolk · Practical tools for life's complicated moments · clearfolks.com"
 - Tone: warm, practical, no hype
@@ -40,13 +42,10 @@ Category: {CATEGORY}
 Pain summary: {PAIN}
 URL: {URL}
 
-COMPETITOR CONTEXT:
-Similar tools cost $50-200+. Our product is a one-time purchase significantly under that.
-
 OUTPUT FORMAT:
 TITLE: [etsy title]
 
-PRICE SUGGESTION: $[price]
+PRICE SUGGESTION: $9.99
 
 DESCRIPTION:
 [full description, 150-200 words]

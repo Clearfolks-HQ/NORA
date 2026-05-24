@@ -18,7 +18,8 @@ sys.path.insert(0, "/root/clearfolks")
 from outreach import (
     load_communities, save_communities,
     load_queue, save_queue,
-    render_group_post,
+    render_group_post, render_outreach_card,
+    buttons_outreach,
     SEP,
 )
 
@@ -250,7 +251,12 @@ def cmd_outreach():
     send("\n".join(lines))
 
 
-CALLBACK_PREFIXES = ("sent_", "skip_", "edit_", "yes_", "no_", "pending_", "post_shared_", "copy_")
+CALLBACK_PREFIXES = (
+    "sent_", "skip_", "editundo_", "editconfirm_", "edit_",
+    "yes_", "no_", "pending_", "post_shared_", "copy_",
+    # Signal (pulse.py daily push) actions:
+    "posted_", "remind_",
+)
 
 
 def _parse_callback(data_str):
@@ -258,6 +264,63 @@ def _parse_callback(data_str):
         if data_str.startswith(prefix):
             return prefix[:-1], data_str[len(prefix):]
     return None, None
+
+
+REDDIT_ACTIONS_LOG  = Path(LOGS_DIR) / "reddit_actions.json"
+REDDIT_REMIND_QUEUE = Path(LOGS_DIR) / "reddit_remind_queue.json"
+
+
+def _is_signal_id(cid: str) -> bool:
+    """Pulse signal IDs look like S1, S2, S17. Outreach community IDs look
+    like com_001. This lets us share callback prefixes (notably skip_) across
+    the two flows without collisions."""
+    return bool(cid) and cid[0] in ("S", "s") and cid[1:].isdigit()
+
+
+def _append_json_list(path: Path, entry: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        with open(path) as f:
+            data = json.load(f)
+        if not isinstance(data, list):
+            data = []
+    except (FileNotFoundError, json.JSONDecodeError):
+        data = []
+    data.append(entry)
+    with open(path, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+def _handle_signal_callback(cb, action, sid):
+    """Posted / skip / remind handler for pulse signal messages."""
+    cb_id      = cb["id"]
+    msg        = cb.get("message", {}) or {}
+    message_id = msg.get("message_id")
+    msg_text   = msg.get("text", "") or ""
+    now_iso    = datetime.now().isoformat(timespec="seconds")
+
+    if action == "posted":
+        _append_json_list(REDDIT_ACTIONS_LOG,
+                          {"signal_id": sid, "action": "posted", "ts": now_iso})
+        edit_text(message_id, f"✅ POSTED — {sid}\n   logged at {now_iso}")
+        answer_cb(cb_id, "got it, marked as posted")
+
+    elif action == "skip":
+        _append_json_list(REDDIT_ACTIONS_LOG,
+                          {"signal_id": sid, "action": "skipped", "ts": now_iso})
+        edit_text(message_id, f"⏭ SKIPPED — {sid}\n   logged at {now_iso}")
+        answer_cb(cb_id, "skipped")
+
+    elif action == "remind":
+        _append_json_list(REDDIT_ACTIONS_LOG,
+                          {"signal_id": sid, "action": "remind_tomorrow", "ts": now_iso})
+        _append_json_list(REDDIT_REMIND_QUEUE,
+                          {"signal_id": sid, "text": msg_text, "queued_at": now_iso})
+        edit_text(message_id, f"🔁 REMIND TOMORROW — {sid}\n   queued at {now_iso}")
+        answer_cb(cb_id, "will remind you tomorrow")
+
+    else:
+        answer_cb(cb_id, "unknown signal action")
 
 
 def handle_callback(cb):
@@ -269,6 +332,12 @@ def handle_callback(cb):
     action, cid = _parse_callback(data_str)
     if not action:
         answer_cb(cb_id, "Unknown action")
+        return
+
+    # Pulse signal callbacks (posted/skip/remind on S<n> IDs) go to their own
+    # handler so they don't try to look up a non-existent outreach community.
+    if action in ("posted", "remind") or (action == "skip" and _is_signal_id(cid)):
+        _handle_signal_callback(cb, action, cid)
         return
 
     db = load_communities()
@@ -311,6 +380,32 @@ def handle_callback(cb):
         answer_cb(cb_id, "Skipped")
 
     elif action == "edit":
+        # Confirmation step — don't change status yet. Prevents accidental edit-flagging.
+        edit_text(message_id,
+                  "\n".join([
+                      SEP,
+                      f"✏️ Edit flagged for {c['name']}",
+                      SEP,
+                  ]),
+                  buttons={"inline_keyboard": [
+                      [{"text": "↩️ Undo — resend original", "callback_data": f"editundo_{cid}"}],
+                      [{"text": "✏️ Confirm edit needed", "callback_data": f"editconfirm_{cid}"}],
+                  ]})
+        answer_cb(cb_id, "Confirm or undo")
+
+    elif action == "editundo":
+        # Restore the original outreach card in place. No status change.
+        q = load_queue()
+        pending = q.get("pending", []) if q else []
+        if cid in pending:
+            idx = pending.index(cid) + 1
+            total = len(pending)
+        else:
+            idx, total = 1, 1
+        edit_text(message_id, render_outreach_card(c, idx, total), buttons=buttons_outreach(cid))
+        answer_cb(cb_id, "Restored")
+
+    elif action == "editconfirm":
         c["status"] = "edit"
         c["edit_flagged_at"] = today
         edit_text(message_id,

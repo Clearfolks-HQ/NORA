@@ -1,5 +1,5 @@
 {
-  "_comment": "Maps each Hugo cluster to its Pinterest board on @clearfolkshop. Buffer needs `board_service_id` (Pinterest's own ID) when scheduling — `board_id` is the Buffer-side ID, kept for reference. Update both fields once a board is created on Pinterest. Until then, REPLACE_ME entries fall back to the `fallback_board` (Quick Saves).",
+  "_comment": "Maps each Hugo cluster to its Pinterest board on @clearfolkshop. Buffer needs `board_service_id` (Pinterest's own ID) when scheduling — `board_id` is the Buffer-side ID, kept for reference. Board IDs are stable across Pinterest renames, so renaming a board on Pinterest does NOT require changing board_id or board_service_id. Update both ID fields only if a board is deleted and re-created. Until a real ID is assigned, REPLACE_ME entries fall back to the `fallback_board` (Quick Saves).",
   "_fetched_at": "2026-05-20",
   "_endpoint": "https://api.buffer.com/ (GraphQL, OIDC bearer)",
   "channel": {
@@ -14,57 +14,57 @@
   },
   "boards": {
     "caregiver": {
-      "board": "Caregiver Tools & Resources",
+      "board": "Caregiver Support & Organization",
       "board_id": "6a0d7f4b81785e4822065c0a",
       "board_service_id": "1089097191078813166"
     },
     "medication": {
-      "board": "Medication Tracking",
+      "board": "Medication Management Tips",
       "board_id": "6a0d7f4b81785e4822065c10",
       "board_service_id": "1089097191078919000"
     },
     "iep": {
-      "board": "IEP & Special Needs",
+      "board": "Special Education & IEP Resources",
       "board_id": "6a0d7f4b81785e4822065c0e",
       "board_service_id": "1089097191078919001"
     },
     "etsy-seller": {
-      "board": "Etsy Seller Tips",
+      "board": "Etsy Seller Tips & Tools",
       "board_id": "6a0d7f4b81785e4822065c0b",
       "board_service_id": "1089097191078656939"
     },
     "wedding": {
-      "board": "Wedding Planning",
+      "board": "Wedding Planning & Organization",
       "board_id": "6a0d7f4b81785e4822065c15",
       "board_service_id": "1089097191078919003"
     },
     "baby": {
-      "board": "Baby & Postpartum",
+      "board": "New Baby & Postpartum",
       "board_id": "6a0d7f4b81785e4822065c09",
       "board_service_id": "1089097191078919004"
     },
     "homeschool": {
-      "board": "Homeschool Planning",
+      "board": "Homeschool Planning & Organization",
       "board_id": "6a0d7f4b81785e4822065c0c",
       "board_service_id": "1089097191078919005"
     },
     "pet-care": {
-      "board": "Pet Care",
+      "board": "Pet Care & Organization",
       "board_id": "6a0d7f4b81785e4822065c12",
       "board_service_id": "1089097191078919007"
     },
     "meal-planning": {
-      "board": "Meal Planning",
+      "board": "Meal Planning & Grocery Tips",
       "board_id": "6a0d7f4b81785e4822065c0f",
       "board_service_id": "1089097191078919008"
     },
     "moving": {
-      "board": "Moving Tips",
+      "board": "Moving Day & Home Organization",
       "board_id": "6a0d7f4b81785e4822065c11",
       "board_service_id": "1089097191078919009"
     },
     "travel": {
-      "board": "Travel Planning",
+      "board": "Travel Planning & Organization",
       "board_id": "6a0d7f4b81785e4822065c14",
       "board_service_id": "1089097191078919010"
     },

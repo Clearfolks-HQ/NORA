@@ -43,7 +43,6 @@ BASE = f"https://api.telegram.org/bot{TOKEN}"
 
 DAILY_DELIVER = 10
 DAILY_FIND_TARGET = 25
-PROMO_CODE = "COMMUNITY0626"
 SEP = "━" * 26
 
 DRY_RUN = "--dry-run" in sys.argv
@@ -187,8 +186,7 @@ def render_draft_message(community):
         f"find anything that actually worked.\n\n"
         f"The result is the {product} — {one_liner}. One payment, lifetime access, "
         f"works offline, household sharing included. No subscriptions.\n\n"
-        f"I'd love to offer your community a special rate: $4 instead of $49.99, "
-        f"using code {PROMO_CODE} at our Etsy shop:\n{etsy_url}\n\n"
+        f"It's on Etsy here:\n{etsy_url}\n\n"
         f"No affiliate arrangement. No ask for promotion. Just a genuine offer for "
         f"{audience}. If even a handful leave an honest review, that means "
         f"everything to a small indie maker.\n\n"
@@ -205,8 +203,7 @@ def render_group_post(community):
     return (
         f"Hey everyone! We're excited to share something from Debajit at Clearfolks "
         f"— a practical {product} that helps you stay organized: {one_liner}.\n\n"
-        f"Special offer for our community: just $4 (normally $49.99) using code "
-        f"{PROMO_CODE} at their Etsy shop:\n{etsy_url}\n\n"
+        f"It's on their Etsy shop here:\n{etsy_url}\n\n"
         f"If you try it, please leave an honest review on Etsy — it helps a small "
         f"indie maker enormously."
     )
