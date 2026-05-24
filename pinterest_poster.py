@@ -201,15 +201,52 @@ def build_post_text(draft: dict, etsy_url: str, max_chars: int = PINTEREST_MAX_C
     return assemble(truncated)
 
 
-def next_slot(slot_index: int, now: datetime | None = None) -> datetime:
-    """Return the next datetime for the given slot index (0 = first slot, 1 = second).
-    If today's slot has already passed, roll to tomorrow."""
-    now = now or datetime.now()
-    hh, mm = SCHEDULE_SLOTS[slot_index].split(":")
-    candidate = now.replace(hour=int(hh), minute=int(mm), second=0, microsecond=0)
-    if candidate <= now:
-        candidate += timedelta(days=1)
-    return candidate
+def iter_future_slots(start_after: datetime | None = None):
+    """Yield successive future scheduling slot datetimes forever.
+
+    Slots cycle through SCHEDULE_SLOTS (today's remaining ones first, then
+    tomorrow's, then the day after, etc.). If start_after is given, only
+    slots strictly after that timestamp are yielded — used to chain a new
+    poster run after pins that were already scheduled in a previous run."""
+    cutoff = start_after if start_after else datetime.now()
+    day = cutoff.replace(hour=0, minute=0, second=0, microsecond=0)
+    while True:
+        for slot in SCHEDULE_SLOTS:
+            hh, mm = slot.split(":")
+            candidate = day.replace(hour=int(hh), minute=int(mm))
+            if candidate > cutoff:
+                yield candidate
+        day += timedelta(days=1)
+
+
+def last_scheduled_from_log() -> datetime | None:
+    """Find the latest scheduled_at across previously logged pins, so a new
+    run starts in the slot AFTER that — never colliding with pins already in
+    Buffer. Returns None if no prior scheduled events are found."""
+    if not LOG_FILE.exists():
+        return None
+    latest: datetime | None = None
+    with open(LOG_FILE) as f:
+        for line in f:
+            line = line.strip()
+            if not line.startswith("{"):
+                continue
+            try:
+                ev = json.loads(line)
+            except Exception:
+                continue
+            if ev.get("event") != "pin" or ev.get("status") != "scheduled":
+                continue
+            ts = ev.get("scheduled_at", "")
+            if not ts:
+                continue
+            try:
+                dt = datetime.fromisoformat(ts)
+            except Exception:
+                continue
+            if latest is None or dt > latest:
+                latest = dt
+    return latest
 
 
 def load_boards_config() -> dict:
@@ -378,7 +415,14 @@ def run(dry_run: bool, limit: int | None = None) -> int:
     effective_limit = limit if limit is not None else MAX_PER_RUN
     log(f"Found {len(drafts)} draft(s); will schedule up to {effective_limit}.")
 
-    for slot_index, draft_path in enumerate(drafts[:effective_limit]):
+    # Chain new slot assignments after whatever was already scheduled in a
+    # previous run, so we never double-book a Buffer slot.
+    last_sched = last_scheduled_from_log()
+    if last_sched:
+        log(f"Starting slot allocation after last scheduled pin @ {last_sched.isoformat(timespec='minutes')}.")
+    slot_iter = iter_future_slots(start_after=last_sched)
+
+    for draft_path in drafts[:effective_limit]:
         draft = parse_draft(draft_path)
         if not draft:
             log(f"  Skipping {draft_path.name} — missing TITLE/DESCRIPTION.")
@@ -410,7 +454,7 @@ def run(dry_run: bool, limit: int | None = None) -> int:
 
         caption = build_post_text(draft, etsy_url)
         alt_text = build_alt_text(draft["product"], draft.get("pain_point", ""))
-        scheduled_at = next_slot(slot_index)
+        scheduled_at = next(slot_iter)
 
         board_meta       = boards.get(cluster, {})
         board_name       = board_meta.get("board", "")
