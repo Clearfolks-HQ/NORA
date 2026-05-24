@@ -394,7 +394,12 @@ def run(dry_run: bool, limit: int | None = None) -> int:
             continue
 
         image_path = IMAGES_DIR / f"{cluster}.png"
-        image_url  = f"{IMAGES_BASE_URL}/{cluster}.png"
+        # Buffer/Pinterest reject "Whoops, you've posted that one recently" when
+        # the same image URL gets reused. Append a per-pin query string so each
+        # scheduling attempt has a unique URL. (Image bytes are the same; if
+        # Buffer hashes bytes too, we'll need per-pin image rendering next.)
+        pin_token = slugify(draft["title"])[:40] or "pin"
+        image_url = f"{IMAGES_BASE_URL}/{cluster}.png?p={pin_token}"
 
         # Sanitize forbidden words in the caption + hashtags
         clean_desc,    bad_desc    = strip_forbidden(draft["description"])
