@@ -6,6 +6,7 @@ Saves drafts to ~/clearfolks/drafts/
 """
 
 import os
+import re
 import sys
 import json
 from datetime import datetime
@@ -197,8 +198,19 @@ def main():
         print("No signals to process")
         return
     
-    # Filter to top signals only (score 7+)
-    top_signals = [s for s in signals if "8" in s.get("score", "") or "7" in s.get("score", "") or "9" in s.get("score", "")]
+    # Filter to scoring signals (6+, matching pulse's own minimum), sort by
+    # score desc, then take the top N. Broader threshold than 7+ so we get
+    # more pin/blog drafts per day; capped at MAX_PER_RUN so API spend stays
+    # bounded.
+    MAX_PER_RUN = 6
+    def _score_num(s):
+        m = re.search(r"(\d+)", s.get("score", ""))
+        return int(m.group(1)) if m else 0
+    top_signals = sorted(
+        (s for s in signals if _score_num(s) >= 6),
+        key=_score_num,
+        reverse=True,
+    )[:MAX_PER_RUN]
     if not top_signals:
         top_signals = signals[:3]
     

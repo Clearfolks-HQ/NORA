@@ -49,9 +49,10 @@ BUFFER_API_URL    = "https://api.buffer.com/"  # GraphQL, OIDC bearer token
 IMAGES_BASE_URL   = "https://blog.clearfolks.com/pin-images"  # served via Hugo static
 BRAND_CLOSE       = "Made by Clearfolk · clearfolks.com"
 
-# Pin two per day — first cron run at 10:00, second slot is 17:00 same day.
-SCHEDULE_SLOTS    = ["10:00", "17:00"]
-MAX_PER_RUN       = 2
+# Four pins per day at 10am, 1pm, 5pm, 8pm. iter_future_slots cycles through
+# these in order, rolling forward to the next day after the last slot fires.
+SCHEDULE_SLOTS    = ["10:00", "13:00", "17:00", "20:00"]
+MAX_PER_RUN       = 4
 
 FORBIDDEN = [
     "revolutionary", "seamless", "intuitive", "game-changing",
@@ -201,31 +202,36 @@ def build_post_text(draft: dict, etsy_url: str, max_chars: int = PINTEREST_MAX_C
     return assemble(truncated)
 
 
-def iter_future_slots(start_after: datetime | None = None):
-    """Yield successive future scheduling slot datetimes forever.
+def iter_future_slots(reserved: set | None = None):
+    """Yield future scheduling slot datetimes forever, skipping any in
+    `reserved` (typically pins already scheduled in Buffer from prior runs).
 
-    Slots cycle through SCHEDULE_SLOTS (today's remaining ones first, then
-    tomorrow's, then the day after, etc.). If start_after is given, only
-    slots strictly after that timestamp are yielded — used to chain a new
-    poster run after pins that were already scheduled in a previous run."""
-    cutoff = start_after if start_after else datetime.now()
-    day = cutoff.replace(hour=0, minute=0, second=0, microsecond=0)
+    Slots cycle through SCHEDULE_SLOTS each day, rolling forward to the next
+    day after the last slot fires. The very first yielded slot is the next
+    SCHEDULE_SLOTS time after `now` that isn't already reserved — so today's
+    remaining open slots get used before rolling into tomorrow."""
+    reserved = reserved or set()
+    now = datetime.now()
+    day = now.replace(hour=0, minute=0, second=0, microsecond=0)
     while True:
         for slot in SCHEDULE_SLOTS:
             hh, mm = slot.split(":")
             candidate = day.replace(hour=int(hh), minute=int(mm))
-            if candidate > cutoff:
-                yield candidate
+            if candidate <= now:
+                continue
+            if candidate in reserved:
+                continue
+            yield candidate
         day += timedelta(days=1)
 
 
-def last_scheduled_from_log() -> datetime | None:
-    """Find the latest scheduled_at across previously logged pins, so a new
-    run starts in the slot AFTER that — never colliding with pins already in
-    Buffer. Returns None if no prior scheduled events are found."""
+def scheduled_slot_times_from_log() -> set:
+    """Set of every `scheduled_at` datetime previously logged as a scheduled
+    pin. Lets iter_future_slots avoid double-booking slots that Buffer is
+    already holding from earlier runs."""
+    out: set = set()
     if not LOG_FILE.exists():
-        return None
-    latest: datetime | None = None
+        return out
     with open(LOG_FILE) as f:
         for line in f:
             line = line.strip()
@@ -241,12 +247,10 @@ def last_scheduled_from_log() -> datetime | None:
             if not ts:
                 continue
             try:
-                dt = datetime.fromisoformat(ts)
+                out.add(datetime.fromisoformat(ts))
             except Exception:
                 continue
-            if latest is None or dt > latest:
-                latest = dt
-    return latest
+    return out
 
 
 def load_boards_config() -> dict:
@@ -415,12 +419,13 @@ def run(dry_run: bool, limit: int | None = None) -> int:
     effective_limit = limit if limit is not None else MAX_PER_RUN
     log(f"Found {len(drafts)} draft(s); will schedule up to {effective_limit}.")
 
-    # Chain new slot assignments after whatever was already scheduled in a
-    # previous run, so we never double-book a Buffer slot.
-    last_sched = last_scheduled_from_log()
-    if last_sched:
-        log(f"Starting slot allocation after last scheduled pin @ {last_sched.isoformat(timespec='minutes')}.")
-    slot_iter = iter_future_slots(start_after=last_sched)
+    # Fill any gaps in the schedule, skipping slots already booked in prior
+    # runs. The iterator starts from "now" and yields the next open slot,
+    # so today's remaining slots get used before rolling into tomorrow.
+    reserved = scheduled_slot_times_from_log()
+    if reserved:
+        log(f"Avoiding {len(reserved)} already-scheduled slot(s) from prior runs.")
+    slot_iter = iter_future_slots(reserved=reserved)
 
     for draft_path in drafts[:effective_limit]:
         draft = parse_draft(draft_path)
