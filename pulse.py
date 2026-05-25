@@ -19,7 +19,155 @@ client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 SUBREDDITS_FILE = "/root/clearfolks/subreddits.json"
 SIGNALS_DIR = "/root/clearfolks/signals"
 LOGS_DIR = "/root/clearfolks/logs"
+PRODUCTS_FILE = "/root/clearfolks/products.json"
 BLOG_BASE_URL = "https://blog.clearfolks.com"
+
+
+# ── Subreddit tier policy ─────────────────────────────────────────────────────
+# Tier 1 = large, strict-moderation subs that remove any post containing a URL
+# as a Rule 7 (self-promotion) violation. We post a link-free reply ending with
+# a DM invitation. Match is case-insensitive on the bare name (no "r/" prefix).
+TIER_1_SUBREDDITS = {
+    "weddingplanning",
+    "mealprepsunday",
+    "beyondthebump",
+    "homeschool",
+    "specialeducation",
+    "caregivers",
+    "moving",
+    "etsy",
+    "dogs",
+    "cats",
+}
+
+# Variety pool for the link-free tier-1 close. Picked deterministically per
+# signal so the same signal_id always renders the same close, and so two
+# adjacent signals get different closes.
+TIER1_CLOSES = [
+    "lmk if you want more info",
+    "happy to share more if useful",
+]
+
+# Variety pool for the natural-URL tier-2 close. The URL is the LAST thing in
+# the sentence, never on its own labeled line.
+TIER2_CLOSES = [
+    "its on etsy if you want to check it out: {url}",
+    "built it and put it on etsy if thats useful: {url}",
+    "on etsy if you want to look: {url}",
+]
+
+
+def _normalize_subreddit(name: str) -> str:
+    """'r/WeddingPlanning' → 'weddingplanning' for tier lookup."""
+    n = (name or "").strip().lower()
+    if n.startswith("r/"):
+        n = n[2:]
+    return n
+
+
+def subreddit_tier(subreddit: str) -> int:
+    """1 for strict subs (no URL allowed), 2 for everywhere else."""
+    return 1 if _normalize_subreddit(subreddit) in TIER_1_SUBREDDITS else 2
+
+
+def _load_etsy_urls_by_product() -> dict:
+    """Map product name (and a few aliases) → Etsy listing URL. Mirrors the
+    helper in pinterest_poster but kept local so pulse has no cross-module
+    side effects at import time."""
+    try:
+        with open(PRODUCTS_FILE) as f:
+            data = json.load(f)
+    except Exception:
+        return {}
+    out: dict[str, str] = {}
+    for p in data.get("products", []):
+        url = p.get("etsy_url", "")
+        name = p.get("name", "")
+        if not url or not name:
+            continue
+        variants = {name, name.removesuffix(" App").strip()}
+        # & / "and" interchange
+        for n in list(variants):
+            if "&" in n:
+                variants.add(n.replace("&", "and"))
+            if " and " in n:
+                variants.add(n.replace(" and ", " & "))
+        for v in variants:
+            if v:
+                out[v] = url
+    return out
+
+
+_ETSY_URLS = _load_etsy_urls_by_product()
+
+
+def etsy_url_for_product(product: str) -> str:
+    """Resolve a product_match string ('Upcoming: Wedding Planning App') to
+    its Etsy listing URL. Returns '' if not found."""
+    if not product:
+        return ""
+    p = product.replace("Upcoming:", "").strip()
+    if p in _ETSY_URLS:
+        return _ETSY_URLS[p]
+    base = p.removesuffix(" App").strip()
+    return _ETSY_URLS.get(base, "")
+
+
+# Sentence-final phrases that signal a "soft close" we want to strip and
+# replace with the tier-appropriate one. Match is substring + case-insensitive.
+_CLOSE_MARKERS = (
+    "on etsy",
+    "lmk if",
+    "want the link",
+    "share the link",
+    "if useful",
+    "if helpful",
+    "if that helps",
+    "if thats useful",
+    "happy to share",
+    "more info",
+)
+
+
+def _strip_trailing_close(reply: str) -> str:
+    """Drop any trailing sentence that reads like a soft close so we can append
+    a tier-appropriate one without doubling up."""
+    sentences = re.split(r"(?<=[.!?])\s+", reply.strip())
+    while sentences:
+        last = sentences[-1].lower()
+        if any(m in last for m in _CLOSE_MARKERS):
+            sentences.pop()
+        else:
+            break
+    body = " ".join(sentences).rstrip()
+    # Drop trailing punctuation so the new close adds its own.
+    body = body.rstrip(".!? ,")
+    return body
+
+
+def rewrite_reply_for_tier(reply: str, tier: int, etsy_url: str,
+                           signal_id: str | None = None) -> str:
+    """Strip the model's soft close and append a tier-appropriate one.
+
+    Tier 1: no URL anywhere — closes with a DM invitation.
+    Tier 2: URL embedded naturally in the last sentence.
+
+    signal_id is used as a stable seed so the same signal always renders the
+    same close, and adjacent signals get visual variety."""
+    body = _strip_trailing_close(reply or "")
+    if not body:
+        body = (reply or "").strip().rstrip(".!? ,")
+
+    seed = abs(hash(signal_id or body)) if signal_id else abs(hash(body))
+
+    if tier == 1 or not etsy_url:
+        close = TIER1_CLOSES[seed % len(TIER1_CLOSES)]
+    else:
+        close = TIER2_CLOSES[seed % len(TIER2_CLOSES)].format(url=etsy_url)
+
+    # Reattach with a period + space, lowercase first letter of close to stay
+    # in the texting-style voice the prompt already enforces.
+    return f"{body}. {close}"
 
 SIGNAL_PROMPT = """You are Pulse, a buying signal analyst for Clearfolks Templates, an Etsy store selling lightweight digital organizer apps.
 
@@ -293,10 +441,25 @@ def analyze_signals(posts):
             print(f"  WARNING: retry parse also failed ({e2}); skipping batch.")
             return []
 
-    # Belt-and-suspenders: scrub forbidden words from every reply.
+    # Belt-and-suspenders: scrub forbidden words, then apply tier-aware
+    # reply rewriting so the saved report + Telegram push both see the final
+    # copy-paste-ready text.
     for s in signals:
-        if isinstance(s, dict) and "suggested_response" in s:
+        if not isinstance(s, dict):
+            continue
+        if "suggested_response" in s:
             s["suggested_response"] = scrub_forbidden_words(s["suggested_response"])
+        tier = subreddit_tier(s.get("subreddit", ""))
+        product = s.get("product_match", "")
+        etsy = etsy_url_for_product(product)
+        s["subreddit_tier"] = tier
+        s["etsy_url"] = etsy
+        s["suggested_response"] = rewrite_reply_for_tier(
+            s.get("suggested_response", ""),
+            tier=tier,
+            etsy_url=etsy,
+            signal_id=s.get("signal_id"),
+        )
     return signals
 
 def save_report(signals, date_str):
@@ -349,17 +512,6 @@ def send_telegram_msg(token, chat_id, text, reply_markup=None, parse_mode="Markd
         urllib.request.urlopen(urllib.request.Request(url, data=data), timeout=15)
     except Exception as e:
         print(f"Telegram error: {e}")
-
-def build_reply_with_blog(suggested_response, cluster):
-    """Append a natural blog-post mention to the Reddit reply copy.
-    No-op if cluster is unknown or the link is already present."""
-    reply = (suggested_response or "").rstrip()
-    if not cluster:
-        return reply
-    blog_path = f"blog.clearfolks.com/{cluster}/"
-    if blog_path in reply:
-        return reply
-    return f"{reply}\n\nI wrote a full guide on this: {blog_path}"
 
 REMIND_QUEUE_PATH = "/root/clearfolks/logs/reddit_remind_queue.json"
 
@@ -438,21 +590,27 @@ def send_daily_push(signals):
 
     for i, s in enumerate(top, 1):
         product_name = s.get("product_match","").replace("Upcoming: ","").strip()
-        cluster = product_to_cluster(product_name)
-        blog_url = f"{BLOG_BASE_URL}/{cluster}/" if cluster else ""
-        reply = build_reply_with_blog(s.get("suggested_response",""), cluster)
-        blog_line = f"\n\n<b>Blog post:</b>\n{blog_url}" if blog_url else ""
+        # analyze_signals has already rewritten suggested_response for the
+        # right tier (link or no-link). Use it verbatim — never tack an Etsy
+        # or blog URL onto its own line, since that's what gets pulled by
+        # strict-sub moderators.
+        reply = s.get("suggested_response", "")
+        tier  = s.get("subreddit_tier") or subreddit_tier(s.get("subreddit", ""))
+
+        tier_note = ""
+        if tier == 1:
+            tier_note = "\n⚠️ <i>strict subreddit — no link in this reply</i>"
 
         signal_id = s.get("signal_id") or f"S{i}"
         text = (
-            f"<b>Signal {i}/{len(top)} - Score {s.get('score','?')}/10</b>  ({signal_id})\n"
+            f"<b>Signal {i}/{len(top)} - Score {s.get('score','?')}/10</b>  ({signal_id})"
+            f"{tier_note}\n"
             f"<b>Where:</b> {he(s.get('subreddit',''))}\n"
             f"<b>Post:</b> {he(s.get('post_title',''))}\n"
             f"<b>Pain:</b> {he(s.get('pain_point',''))}\n"
             f"<b>Product:</b> {he(product_name)}\n\n"
             f"<b>Reply to copy:</b>\n{he(reply)}\n\n"
             f"<b>Reddit link:</b>\n{s.get('post_url','')}"
-            f"{blog_line}"
         )
         if len(text) > 4000:
             text = text[:3900] + "\n<i>...truncated</i>"
