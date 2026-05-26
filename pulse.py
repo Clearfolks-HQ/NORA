@@ -57,6 +57,67 @@ TIER2_CLOSES = [
 ]
 
 
+# ── Daily/weekly discussion threads ──────────────────────────────────────────
+# Some strict tier-1 subs run a recurring megathread where self-promotion is
+# allowed. When a signal lands in one of these subs, we generate a second
+# version of the copy: a short on-thread promo post the user can drop into
+# the megathread (separate action from the no-link reply on the OP).
+KNOWN_DISCUSSION_THREADS = {
+    "weddingplanning":  "Daily Discussion Chat",
+    "beyondthebump":    "Weekly Discussion Thread",
+    "homeschool":       "Weekly Share Thread",
+    "mealprepsunday":   "Daily Discussion",
+    "caregivers":       "Weekly Support Thread",
+    "etsy":             "Weekly Sharing Thread",
+    "dogs":             "Daily Discussion Thread",
+    "cats":             "Daily Discussion Thread",
+}
+
+
+def discussion_thread_for(subreddit: str) -> str | None:
+    """Return the megathread title for a sub, or None if no known thread."""
+    return KNOWN_DISCUSSION_THREADS.get(_normalize_subreddit(subreddit))
+
+
+# Product names that read awkwardly when lowercased and used as descriptors
+# ("Caregiver Command Center app" sounds weird). Override with something
+# natural-sounding. Everything else falls back to lowercased product name
+# minus a trailing " App" suffix.
+PRODUCT_DESCRIPTORS = {
+    "Caregiver Command Center":     "caregiver organizer",
+    "Caregiver Organizer App":      "caregiver organizer",
+    "Etsy Seller Business System":  "etsy seller tracker",
+    "IEP Parent Binder":            "iep parent binder",
+    "IEP Meeting Prep Kit":         "iep meeting prep",
+}
+
+
+def product_descriptor(product: str) -> str:
+    """Turn a product name into the short descriptor used by the megathread
+    promo post: 'Wedding Planning App' → 'wedding planning'."""
+    p = (product or "").replace("Upcoming:", "").strip()
+    if p in PRODUCT_DESCRIPTORS:
+        return PRODUCT_DESCRIPTORS[p]
+    return p.lower().removesuffix(" app").strip()
+
+
+def build_discussion_post(product: str, etsy_url: str) -> str:
+    """The short promo text to drop into a sub's daily/weekly discussion
+    megathread. Lowercase, lifestyle-Reddit voice, URL embedded as its own
+    sentence-ending element (not labeled). No em dashes, no semicolons."""
+    if not etsy_url:
+        return ""
+    d = product_descriptor(product)
+    if not d:
+        return ""
+    article = "an" if d[0] in "aeiou" else "a"
+    return (
+        f"built {article} {d} app, on etsy for $9.99. "
+        f"works offline, one payment. {etsy_url}. "
+        f"happy to answer questions"
+    )
+
+
 def _normalize_subreddit(name: str) -> str:
     """'r/WeddingPlanning' → 'weddingplanning' for tier lookup."""
     n = (name or "").strip().lower()
@@ -460,6 +521,12 @@ def analyze_signals(posts):
             etsy_url=etsy,
             signal_id=s.get("signal_id"),
         )
+        # Second action for strict subs that have a known discussion thread:
+        # a short link-included promo to drop into the megathread.
+        thread = discussion_thread_for(s.get("subreddit", "")) if tier == 1 else None
+        if thread and etsy:
+            s["discussion_thread_name"] = thread
+            s["discussion_thread_post"] = build_discussion_post(product, etsy)
     return signals
 
 def save_report(signals, date_str):
@@ -477,6 +544,9 @@ def save_report(signals, date_str):
             f.write(f"**Pain point:** {s.get('pain_point','')}\n\n")
             f.write(f"**Product match:** {s.get('product_match','')}\n\n")
             f.write(f"**Suggested response:**\n\n{s.get('suggested_response','')}\n\n")
+            if s.get("discussion_thread_post"):
+                f.write(f"**Discussion thread:** {s.get('discussion_thread_name','')}\n\n")
+                f.write(f"**Discussion thread post:**\n\n{s.get('discussion_thread_post','')}\n\n")
             f.write("---\n\n")
     print(f"Report saved: {path}")
     return path
@@ -601,6 +671,23 @@ def send_daily_push(signals):
         if tier == 1:
             tier_note = "\n⚠️ <i>strict subreddit — no link in this reply</i>"
 
+        # Tier-1 subs get the "REPLY TO POST (no link)" label; tier-2 keeps
+        # the historical "Reply to copy" label so it stays obvious which one
+        # has a URL baked in already.
+        reply_label = "💬 REPLY TO POST (no link):" if tier == 1 else "Reply to copy:"
+
+        # Second action: discussion-thread post for strict subs that have one.
+        discussion_block = ""
+        if s.get("discussion_thread_post"):
+            thread_name = s.get("discussion_thread_name", "discussion thread")
+            sub_label   = s.get("subreddit", "")
+            discussion_block = (
+                f"\n\n<b>📌 DAILY DISCUSSION THREAD POST:</b>\n"
+                f"{he(s['discussion_thread_post'])}\n"
+                f"<i>→ find the '{he(thread_name)}' thread "
+                f"in {he(sub_label)} and post this there</i>"
+            )
+
         signal_id = s.get("signal_id") or f"S{i}"
         text = (
             f"<b>Signal {i}/{len(top)} - Score {s.get('score','?')}/10</b>  ({signal_id})"
@@ -609,7 +696,8 @@ def send_daily_push(signals):
             f"<b>Post:</b> {he(s.get('post_title',''))}\n"
             f"<b>Pain:</b> {he(s.get('pain_point',''))}\n"
             f"<b>Product:</b> {he(product_name)}\n\n"
-            f"<b>Reply to copy:</b>\n{he(reply)}\n\n"
+            f"<b>{he(reply_label)}</b>\n{he(reply)}"
+            f"{discussion_block}\n\n"
             f"<b>Reddit link:</b>\n{s.get('post_url','')}"
         )
         if len(text) > 4000:
