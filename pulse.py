@@ -708,7 +708,179 @@ def send_daily_push(signals):
 
     print(f"Daily push sent ,{len(top)+1} messages")
 
+# ── Value posts (Reddit, no product mention) ──────────────────────────────────
+# Weekly mode invoked as `pulse.py --value-posts`. Generates one numbered-list
+# value post per product category and Telegrams each one with action buttons.
+
+from reddit_drafts import (  # noqa: E402  (must follow LOGS_DIR/etc above)
+    CATEGORY_SUBREDDITS,
+    CATEGORY_TOPICS,
+    make_value_draft,
+    save_draft,
+)
+
+
+VALUE_POST_PROMPT = """You are writing a Reddit "value post" for r/CATEGORY_PLACEHOLDER and similar subs.
+
+TOPIC: {topic}
+
+A value post is a numbered list of 8-10 genuine, specific insights a real person learned the hard way about the topic. NO product mention. NO links. NO marketing. Pure value, the kind of thing you share to be useful.
+
+OUTPUT FORMAT (JSON only, no other text):
+{{
+  "title": "lowercase title",
+  "body": "1. first insight ...\\n\\n2. second insight ...\\n\\n..."
+}}
+
+TITLE RULES:
+- All lowercase.
+- Use one of these formulas exactly:
+  · "things i learned about {topic} that nobody told me"
+  · "what {topic} taught me after [N years/months/N kids/etc]"
+  · "[N] things i wish someone told me about {topic} before i started"
+- Keep it under 95 characters total. Sounds like a real Reddit post, not a headline.
+
+BODY RULES:
+- 8 to 10 numbered insights. Use "1." "2." "3." etc, then a blank line between each. NEVER use bullets ("- " or "* ").
+- Each insight is 2 to 4 sentences. Specific, actionable, comes from real experience.
+- Total length 300 to 500 words.
+- All lowercase is fine and preferred — Reddit doesn't sentence-case rigorously.
+- Contractions everywhere ("dont", "thats", "youre", "its"). Texting voice.
+- Voice: "neighbor sharing what they learned", never "expert giving advice".
+
+ABSOLUTE BANS (a single occurrence = total failure):
+- NO em dash "—". Use a period or comma.
+- NO en dash "–".
+- NO semicolons ";".
+- NO oxford commas ("vendors, budget and tasks" not "vendors, budget, and tasks").
+- NO exclamation marks.
+- NO ellipses "...".
+- NO bullets, headings, or markdown.
+- NO product names, brand names, or app names of any kind.
+- NO URLs, no "etsy", no "on etsy", no DMs, no "happy to share". This is a pure-value post.
+- NO words: "revolutionary", "seamless", "intuitive", "game-changer", "simply", "just", "moreover", "furthermore", "additionally".
+- NO phrases: "I built", "I made", "I created", "our product", "I'd love to", "I'm the founder".
+
+GENUINE-INSIGHT TEST (every single insight must pass):
+- Could a stranger on Reddit have written it from their own life? If it reads like generic advice from a blog, rewrite it with a specific detail.
+- Does it teach something they couldn't get from googling the topic for ten minutes? If not, replace it.
+- Is there a specific number, name of a form, type of meeting, brand of tool, or concrete situation in it? If it's all abstractions, add a concrete anchor.
+
+SELF-CHECK BEFORE SUBMITTING:
+1. Scan every character. Does ANY "—" or "–" appear? Rewrite.
+2. Any semicolons? Replace with period or "and".
+3. Any oxford commas? Drop the comma before "and" in 3-item lists.
+4. Any product, brand, or URL mention? Strip it.
+5. Word count between 300 and 500? Trim or expand.
+6. Eight to ten numbered items?
+
+Output ONLY the JSON object. No explanation, no preamble."""
+
+
+def _strip_banned(text: str) -> str:
+    """Belt-and-suspenders cleanup in case the model slipped a banned character."""
+    if not text:
+        return text
+    text = text.replace("—", ". ").replace("–", ". ").replace(";", ".")
+    text = text.replace("…", ".").replace("...", ".")
+    return text
+
+
+def generate_value_post(category: str) -> dict:
+    """Ask Claude for one value post for `category`. Returns dict with title/body."""
+    topic = CATEGORY_TOPICS.get(category) or category.replace("-", " ")
+    prompt = VALUE_POST_PROMPT.format(topic=topic).replace("CATEGORY_PLACEHOLDER", category)
+
+    resp = client.messages.create(
+        model="claude-opus-4-7",
+        max_tokens=2000,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    raw = resp.content[0].text.strip()
+    # Strip optional ```json fences.
+    if raw.startswith("```"):
+        raw = re.sub(r"^```(?:json)?\s*", "", raw)
+        raw = re.sub(r"\s*```$", "", raw)
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        # Try to salvage by finding the outermost JSON object.
+        m = re.search(r"\{.*\}", raw, re.DOTALL)
+        if not m:
+            raise
+        data = json.loads(m.group(0))
+    title = _strip_banned(data.get("title", "").strip().lower())
+    body  = _strip_banned(data.get("body", "").strip())
+    return {"title": title, "body": body}
+
+
+def send_value_post_telegram(draft: dict) -> None:
+    """Telegram message with the value post + inline buttons."""
+    token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
+    if not DRY_RUN and (not token or not chat_id):
+        return
+
+    from html import escape as he
+    suggested = ", ".join(draft["subreddits"]) or "—"
+    text = (
+        f"📝 <b>REDDIT VALUE POST</b> — {he(draft['category'])}\n"
+        f"<i>draft id: {he(draft['id'])}</i>\n\n"
+        f"<b>{he(draft['title'])}</b>\n\n"
+        f"{he(draft['body'])}\n\n"
+        f"<b>Suggested subreddits:</b> {he(suggested)}"
+    )
+    if len(text) > 4000:
+        text = text[:3900] + "\n<i>...truncated</i>"
+    markup = {
+        "inline_keyboard": [[
+            {"text": "✅ Post this", "callback_data": f"vp_post_{draft['id']}"},
+            {"text": "⏭ Skip",       "callback_data": f"vp_skip_{draft['id']}"},
+            {"text": "📋 Copy text", "callback_data": f"vp_copy_{draft['id']}"},
+        ]]
+    }
+    send_telegram_msg(token, chat_id, text, reply_markup=markup, parse_mode="HTML")
+
+
+def run_value_posts(only_category: str | None = None) -> list[dict]:
+    """Generate value posts for every category (or one, if --category given)."""
+    drafts: list[dict] = []
+    cats = [only_category] if only_category else list(CATEGORY_SUBREDDITS.keys())
+    for cat in cats:
+        if cat not in CATEGORY_SUBREDDITS:
+            print(f"  WARN: unknown category '{cat}', skipping")
+            continue
+        print(f"  Generating value post for {cat}...")
+        try:
+            post = generate_value_post(cat)
+        except Exception as e:
+            print(f"    ERROR: {e}")
+            continue
+        draft = make_value_draft(cat, post["title"], post["body"])
+        if not DRY_RUN:
+            save_draft(draft)
+        print(f"    title: {draft['title']}")
+        print(f"    body  : {len(draft['body'])} chars, "
+              f"{len(draft['body'].split())} words")
+        send_value_post_telegram(draft)
+        drafts.append(draft)
+    return drafts
+
+
 def main():
+    if "--value-posts" in sys.argv:
+        only = None
+        if "--category" in sys.argv:
+            i = sys.argv.index("--category")
+            if i + 1 < len(sys.argv):
+                only = sys.argv[i + 1]
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        print(f"Pulse VALUE POSTS run ,{date_str}"
+              + (f" (category={only})" if only else ""))
+        drafts = run_value_posts(only_category=only)
+        print(f"Generated {len(drafts)} value-post draft(s).")
+        return
+
     date_str = datetime.now().strftime("%Y-%m-%d")
     print(f"Pulse running ,{date_str}")
     subreddits = load_subreddits()

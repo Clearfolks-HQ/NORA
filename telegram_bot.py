@@ -256,11 +256,17 @@ CALLBACK_PREFIXES = (
     "yes_", "no_", "pending_", "post_shared_", "copy_",
     # Signal (pulse.py daily push) actions:
     "posted_", "remind_",
+    # Reddit value/blog-link post drafts (pulse.py --value-posts, sofia_blog):
+    "vp_post_", "vp_skip_", "vp_copy_",
+    "bp_post_", "bp_skip_",
 )
 
 
 def _parse_callback(data_str):
-    for prefix in CALLBACK_PREFIXES:
+    # Two-segment prefixes (vp_post_, vp_skip_, vp_copy_, bp_post_, bp_skip_)
+    # need a longer match attempted first, so the single-segment prefixes
+    # (sent_, skip_ …) don't shadow them.
+    for prefix in sorted(CALLBACK_PREFIXES, key=len, reverse=True):
         if data_str.startswith(prefix):
             return prefix[:-1], data_str[len(prefix):]
     return None, None
@@ -323,6 +329,51 @@ def _handle_signal_callback(cb, action, sid):
         answer_cb(cb_id, "unknown signal action")
 
 
+def _handle_reddit_draft_callback(cb, action: str, draft_id: str) -> None:
+    """Callbacks on REDDIT VALUE / BLOG LINK draft messages.
+
+    action ∈ {vp_post, vp_skip, vp_copy, bp_post, bp_skip}
+    """
+    sys.path.insert(0, "/root/clearfolks")
+    from reddit_drafts import mark_action, load_draft
+
+    cb_id = cb["id"]
+    msg = cb.get("message", {}) or {}
+    message_id = msg.get("message_id")
+    now = datetime.now().isoformat(timespec="seconds")
+
+    draft = load_draft(draft_id)
+    if not draft:
+        answer_cb(cb_id, "Draft not found")
+        return
+
+    if action in ("vp_post", "bp_post"):
+        mark_action(draft_id, "posted", source="telegram")
+        edit_text(message_id, f"✅ POSTED — {draft_id}\n   logged at {now}")
+        answer_cb(cb_id, "got it, marked as posted")
+        return
+
+    if action in ("vp_skip", "bp_skip"):
+        mark_action(draft_id, "skipped", source="telegram")
+        edit_text(message_id, f"⏭ SKIPPED — {draft_id}\n   logged at {now}")
+        answer_cb(cb_id, "skipped")
+        return
+
+    if action == "vp_copy":
+        # Pop the body text into a new message the user can long-press to copy.
+        mark_action(draft_id, "copied", source="telegram")
+        body = (draft.get("body") or "").strip()
+        title = (draft.get("title") or "").strip()
+        copy_text = f"{title}\n\n{body}".strip()
+        if len(copy_text) > 4000:
+            copy_text = copy_text[:3900] + "\n...truncated"
+        send(f"📋 Copy this:\n\n<pre>{copy_text}</pre>", parse_mode="HTML")
+        answer_cb(cb_id, "copied — see new message")
+        return
+
+    answer_cb(cb_id, "unknown action")
+
+
 def handle_callback(cb):
     cb_id = cb["id"]
     data_str = cb.get("data", "")
@@ -332,6 +383,11 @@ def handle_callback(cb):
     action, cid = _parse_callback(data_str)
     if not action:
         answer_cb(cb_id, "Unknown action")
+        return
+
+    # Reddit value / blog-link draft callbacks.
+    if action.startswith(("vp_", "bp_")):
+        _handle_reddit_draft_callback(cb, action, cid)
         return
 
     # Pulse signal callbacks (posted/skip/remind on S<n> IDs) go to their own

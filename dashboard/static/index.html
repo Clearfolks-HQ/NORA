@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#1C2B4A" />
+<title>OrganicOS — Clearfolks Marketing Pipeline</title>
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">OrganicOS</span>
+    <span class="tagline">Clearfolks · Marketing Pipeline</span>
+  </div>
+  <div class="meta">
+    <span id="today"></span>
+    <button id="refresh" class="refresh-btn" title="Refresh all data">↻ Refresh</button>
+  </div>
+</header>
+
+<main>
+
+  <section id="signals-section" class="card">
+    <div class="card-head">
+      <h2>Today's Signals</h2>
+      <span class="card-sub" id="signals-meta">Loading…</span>
+    </div>
+    <div id="signals-list" class="signals-list"></div>
+  </section>
+
+  <section id="backlog-section" class="card">
+    <div class="card-head">
+      <h2>Content Backlog</h2>
+      <span class="card-sub" id="backlog-meta">Drafts ready to post across Reddit, Pinterest, and the blog.</span>
+    </div>
+    <div class="reddit-tabs backlog-tabs">
+      <button class="reddit-tab backlog-tab active" data-tab="value">Value Posts</button>
+      <button class="reddit-tab backlog-tab" data-tab="problem">Problem Posts</button>
+      <button class="reddit-tab backlog-tab" data-tab="bloglink">Blog Link Posts</button>
+      <button class="reddit-tab backlog-tab" data-tab="pinterest">Pinterest Queue</button>
+      <button class="reddit-tab backlog-tab" data-tab="blog">Blog Posts</button>
+    </div>
+    <div id="backlog-content" class="reddit-content"></div>
+  </section>
+
+  <section id="performance-section" class="card">
+    <div class="card-head">
+      <h2>Performance — This Week</h2>
+      <span class="card-sub" id="performance-meta"></span>
+    </div>
+    <div id="performance-body"></div>
+  </section>
+
+  <section id="reddit-section" class="card">
+    <div class="card-head">
+      <h2>Reddit Posts</h2>
+      <span class="card-sub" id="reddit-meta">Value post drafts + blog-link drafts. Sunday 7am generates the weekly batch.</span>
+    </div>
+    <div class="reddit-tabs">
+      <button class="reddit-tab active" data-tab="drafts">Drafts</button>
+      <button class="reddit-tab" data-tab="posted">Posted</button>
+      <button class="reddit-tab" data-tab="skipped">Skipped</button>
+      <button class="reddit-tab" data-tab="history">History</button>
+    </div>
+    <div id="reddit-content" class="reddit-content"></div>
+  </section>
+
+  <section id="pipeline-section" class="card">
+    <div class="card-head">
+      <h2>Pipeline Status</h2>
+      <span class="card-sub">Last run / next scheduled for each agent</span>
+    </div>
+    <div id="pipeline-table" class="pipeline-grid"></div>
+  </section>
+
+  <section class="card-row">
+    <section id="pinterest-section" class="card">
+      <div class="card-head">
+        <h2>Today's Pinterest Pins</h2>
+        <span class="card-sub" id="pinterest-meta"></span>
+      </div>
+      <ul id="pinterest-list" class="plain-list"></ul>
+    </section>
+
+    <section id="blog-section" class="card">
+      <div class="card-head">
+        <h2>Blog Posts This Week</h2>
+        <span class="card-sub" id="blog-meta"></span>
+      </div>
+      <ul id="blog-list" class="plain-list"></ul>
+    </section>
+  </section>
+
+  <section class="card-row">
+    <section id="tracker-section" class="card">
+      <div class="card-head">
+        <h2>Action Tracker — This Week</h2>
+        <span class="card-sub" id="tracker-meta"></span>
+      </div>
+      <div id="tracker-grid" class="tracker-grid"></div>
+    </section>
+
+    <section id="stats-section" class="card">
+      <div class="card-head">
+        <h2>Quick Stats</h2>
+        <span class="card-sub">Live counts across the catalog</span>
+      </div>
+      <div id="stats-grid" class="stats-grid"></div>
+    </section>
+  </section>
+
+</main>
+
+<footer>
+  <span>Clearfolks · <a href="https://app.clearfolks.com">app</a> · <a href="https://blog.clearfolks.com">blog</a> · <span id="last-refresh"></span></span>
+</footer>
+
+<script src="/app.js"></script>
+</body>
+</html>

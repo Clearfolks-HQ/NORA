@@ -312,6 +312,111 @@ def send_telegram(message: str):
         log(f"Telegram send failed: {e}")
 
 
+BLOG_LINK_PROMPT = """You are writing a short Reddit self-post that links out to a blog article.
+
+The blog article is titled: "{title}"
+Cluster / audience: {cluster}
+Target subreddits (one or more): {subs}
+
+Write a 2 to 3 sentence intro that frames the article in plain Reddit voice. Say what someone will get out of reading it. End with the URL on its own line.
+
+ABSOLUTE RULES:
+- 2 to 3 sentences MAX in the intro (not counting the URL line).
+- Lowercase is fine and preferred.
+- NO em dashes "—", NO en dashes "–", NO semicolons ";", NO oxford commas, NO exclamation marks, NO ellipses.
+- NO product names, NO "etsy", NO "I built", NO "we created", NO "our app".
+- The post should not feel like marketing. It's a "hey, i found this useful" share.
+- NO markdown formatting, no bullets, no headings.
+
+Output JSON only:
+{{"intro": "the 2-3 sentence intro, no URL", "post_title": "lowercase reddit-style title, max 100 chars"}}"""
+
+
+def generate_blog_link_post(cluster: str, blog_title: str, blog_url: str) -> dict | None:
+    """Create one blog-link Reddit draft per verified blog post (if the cluster
+    has any permissive subreddits configured) and Telegram it with buttons."""
+    # Lazy imports so sofia_blog runs even if the dashboard tree gets rearranged.
+    import json as _json
+    import anthropic as _anthropic
+    import urllib.request as _urlreq
+    import urllib.parse as _urlparse
+
+    sys.path.insert(0, "/root/clearfolks")
+    from reddit_drafts import CLUSTER_PERMISSIVE, make_blog_link_draft, save_draft
+
+    subs = CLUSTER_PERMISSIVE.get(cluster, [])
+    if not subs:
+        log(f"  blog-link: cluster '{cluster}' has no permissive subs — skipping.")
+        return None
+
+    client = _anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+    prompt = BLOG_LINK_PROMPT.format(title=blog_title, cluster=cluster, subs=", ".join(subs))
+    resp = client.messages.create(
+        model="claude-opus-4-7",
+        max_tokens=600,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    raw = resp.content[0].text.strip()
+    if raw.startswith("```"):
+        raw = re.sub(r"^```(?:json)?\s*", "", raw)
+        raw = re.sub(r"\s*```$", "", raw)
+    try:
+        data = _json.loads(raw)
+    except _json.JSONDecodeError:
+        m = re.search(r"\{.*\}", raw, re.DOTALL)
+        if not m:
+            log("  blog-link: model returned non-JSON, skipping.")
+            return None
+        data = _json.loads(m.group(0))
+
+    intro = (data.get("intro") or "").strip()
+    rtitle = (data.get("post_title") or blog_title).strip().lower()
+    # Strip a few banned characters defensively.
+    for bad in ("—", "–"):
+        intro = intro.replace(bad, ". ")
+        rtitle = rtitle.replace(bad, " ")
+    intro = intro.replace(";", ".")
+    rtitle = rtitle.replace(";", "")
+
+    draft = make_blog_link_draft(cluster, rtitle, blog_url, intro)
+    save_draft(draft)
+    log(f"  blog-link draft saved: {draft['id']}")
+
+    # Telegram with action buttons.
+    token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
+    if not token or not chat_id:
+        return draft
+    from html import escape as he
+    text = (
+        f"🔗 <b>REDDIT BLOG POST</b> — {he(', '.join(draft['subreddits']))}\n"
+        f"<i>draft id: {he(draft['id'])}</i>\n\n"
+        f"<b>{he(draft['title'])}</b>\n\n"
+        f"{he(draft['intro'])}\n\n"
+        f"{draft['blog_url']}"
+    )
+    markup = {
+        "inline_keyboard": [[
+            {"text": "✅ Post this", "callback_data": f"bp_post_{draft['id']}"},
+            {"text": "⏭ Skip",      "callback_data": f"bp_skip_{draft['id']}"},
+        ]]
+    }
+    body = _urlparse.urlencode({
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": "true",
+        "reply_markup": _json.dumps(markup),
+    }).encode()
+    try:
+        _urlreq.urlopen(_urlreq.Request(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            data=body, method="POST"), timeout=10)
+    except Exception as e:
+        log(f"  blog-link Telegram send failed: {e}")
+    return draft
+
+
 def process_outlines():
     """Main loop — find unprocessed outlines and expand each one."""
     DRAFTS_DONE.mkdir(parents=True, exist_ok=True)
@@ -425,6 +530,15 @@ def process_outlines():
             for e in errors:
                 lines.append(f"  • {e}")
         send_telegram("\n".join(lines))
+
+    # Reddit blog link posts — one per verified post whose cluster has a
+    # permissive subreddit configured. Drafts are saved to disk and each
+    # one is sent as a separate Telegram message with action buttons.
+    for p in verified:
+        try:
+            generate_blog_link_post(p["cluster"], p["title"], p["url"])
+        except Exception as e:
+            log(f"  WARN: blog-link draft failed for {p['slug']}: {e}")
 
 
 if __name__ == "__main__":
